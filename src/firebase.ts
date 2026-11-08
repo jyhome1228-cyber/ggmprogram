@@ -1,11 +1,15 @@
 import { getApps, initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+// Public Firebase web-app configuration. Never store cafe24 secrets here.
 const config = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  "apiKey": "AIzaSyCGAcOL7VrS0sLbn6WUxbgeDInTr9N9yA4",
+  "authDomain": "ggmapi-e15be.firebaseapp.com",
+  "projectId": "ggmapi-e15be",
+  "storageBucket": "ggmapi-e15be.firebasestorage.app",
+  "messagingSenderId": "683663876311",
+  "appId": "1:683663876311:web:f995832f3cd8d1a1b95092"
 };
-export const firebaseReady = Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
-export const firebaseApp = firebaseReady ? (getApps()[0] || initializeApp(config)) : null;
-export const auth = firebaseApp ? getAuth(firebaseApp) : null;
+export const firebaseReady = true;
+export const firebaseProjectId = config.projectId;
+export const firebaseApp = getApps()[0] ?? initializeApp(config);
+export const auth = getAuth(firebaseApp);
