@@ -26,7 +26,7 @@ export default function App(){
  function navigate(id:View){setView(id);setSearch('');setStatus('전체');setSidebar(false);}
  return <div className="shell">
  <aside className={'sidebar '+(sidebar?'open':'')}>
-   <div className="brand"><span className="brand-mark"><img src="/logo/geonganmi-symbol.svg" alt="건강미 심볼"/></span><div className="brand-identity"><img src="/logo/geonganmi-wordmark.svg" alt="GEONGANMI" className="brand-wordmark"/><small>SHIPPING MANAGER</small></div><button className="mobile-close" aria-label="메뉴 닫기" onClick={()=>setSidebar(false)}><X size={20}/></button></div>
+   <div className="brand"><span className="brand-mark"><img src={import.meta.env.BASE_URL + "logo/geonganmi-symbol.svg"} alt="건강미 심볼"/></span><div className="brand-identity"><img src={import.meta.env.BASE_URL + "logo/geonganmi-wordmark.svg"} alt="GEONGANMI" className="brand-wordmark"/><small>SHIPPING MANAGER</small></div><button className="mobile-close" aria-label="메뉴 닫기" onClick={()=>setSidebar(false)}><X size={20}/></button></div>
    <div className="side-caption">WORKSPACE</div><nav>{items.map(item=><button key={item.id} className={'navitem '+(view===item.id?'selected':'')} onClick={()=>navigate(item.id)}><item.icon size={18}/>{item.name}{view===item.id&&<span className="nav-dot"/>}</button>)}</nav>
    <div className="sidebar-bottom"><div className="connect-badge"><span className="indicator"/> 데모 모드 · API 미연결</div><p>카페24 주문 데이터와 연동하기 전의 기본 화면입니다.</p></div>
  </aside>
