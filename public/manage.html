@@ -6,7 +6,10 @@
 <div class="note">이 화면은 실제 주문 정보를 조회할 수 있으므로 관리자 전용입니다. 주문 변경과 송장 등록은 지원하지 않습니다. 조회 결과는 브라우저에만 표시하며 Firestore에 복사하지 않습니다.</div>
 <section id="login"><h2>관리자 로그인</h2><div class="row"><input id="email" type="email" autocomplete="username" placeholder="Firebase 관리자 이메일"><input id="password" type="password" autocomplete="current-password" placeholder="비밀번호"><button class="primary" id="signin">로그인</button></div><p class="muted">Firebase Authentication의 등록된 관리자 UID와 서버 허용 UID가 일치해야 조회됩니다.</p></section>
 <section id="work" class="hide"><div class="row space"><div><strong id="username">관리자</strong><p class="muted" style="margin:5px 0">개별 배송 조회는 해당 주문의 배송번호와 송장정보를 확인합니다.</p></div><button id="signout">로그아웃</button></div>
-<div class="row bar"><button id="connect" class="primary">카페24 최초 승인</button><button id="check">연결 상태 확인</button><button id="load" class="primary">주문 새로고침</button><button id="next">다음 20건</button></div>
+<div class="row bar"><button id="connect" class="primary">카페24 최초 승인</button><button id="check">연결 상태 확인</button></div>
+<div class="row bar"><label class="muted">주문 시작일 <input id="startDate" type="date"></label><label class="muted">종료일 <input id="endDate" type="date"></label><button id="load" class="primary">주문 조회</button><button id="next">다음 20건</button><button id="audit">표시 주문 송장 누락 검사</button></div>
+<div class="note" id="auditNotice">송장 누락 검사는 조회된 주문 중 최대 15건을 검사합니다. 송장이 없다고 미출고로 단정할 수 없으며 취소·합배송·택배 접수 여부를 별도로 확인해야 합니다.</div>
+<div id="auditResults" class="hide" style="margin:15px 0"></div>
 <div class="scroll"><table><thead><tr><th>주문번호</th><th>주문일시</th><th>주문상태</th><th>배송상태</th><th>송장 상세</th></tr></thead><tbody id="orders"><tr><td colspan="5" class="muted">주문을 불러오려면 새로고침을 누르세요.</td></tr></tbody></table></div><p class="muted" id="pagination"></p>
 <div id="shipPanel" class="hide"><h3>선택한 주문 배송정보</h3><div id="shipments"></div></div></section>
 <section><strong>연결 메시지</strong><p id="message">Firebase Functions 배포 및 카페24 OAuth 승인이 완료된 후 사용할 수 있습니다.</p></section>
@@ -17,7 +20,7 @@ import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'htt
 const config={apiKey:'AIzaSyCGAcOL7VrS0sLbn6WUxbgeDInTr9N9yA4',authDomain:'ggmapi-e15be.firebaseapp.com',projectId:'ggmapi-e15be',appId:'1:683663876311:web:f995832f3cd8d1a1b95092'};
 const app=initializeApp(config),auth=getAuth(app);
 const BASE='https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/';
-const $=id=>document.getElementById(id);let offset=0;
+const $=id=>document.getElementById(id);let offset=0;let loadedIds=[];const today=new Date();const start=new Date(today.getTime()-14*86400000);const fmt=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');$('startDate').value=fmt(start);$('endDate').value=fmt(today);
 function message(s,isError=false){$('message').textContent=s;$('message').className=isError?'bad':''}
 function displayValue(v){return String(v??'-')}
 async function api(functionName,params={}){
@@ -40,8 +43,8 @@ function cell(text){const td=document.createElement('td');td.textContent=display
 async function loadOrders(next){
  if(!next)offset=0;
  try{
- const data=await api('cafe24Orders',{offset,limit:20});
- const rows=Array.isArray(data.orders)?data.orders:[];
+ const data=await api('cafe24Orders',{offset,limit:20,start_date:$('startDate').value,end_date:$('endDate').value});
+ const rows=Array.isArray(data.orders)?data.orders:[];loadedIds=rows.map(x=>String(x.order_id||'')).filter(Boolean);$('auditResults').classList.add('hide');
  const tbody=$('orders');tbody.replaceChildren();
  for(const order of rows){
   const tr=document.createElement('tr');
@@ -55,6 +58,28 @@ async function loadOrders(next){
  message('카페24 주문 조회가 완료되었습니다. ('+rows.length+'건)');
  }catch(e){message('주문 조회 오류: '+e.message,true)}
 }
+$('audit').onclick=async()=>{
+ if(!loadedIds.length){message('먼저 주문을 조회해주세요.',true);return;}
+ $('audit').disabled=true;$('audit').textContent='송장 검사 중...';
+ try{
+ const result=await api('cafe24Audit',{orderIds:loadedIds.slice(0,15).join(',')});
+ const root=$('auditResults');root.replaceChildren();
+ const h=document.createElement('h3');h.textContent='송장 등록 점검 결과';root.append(h);
+ const note=document.createElement('p');note.textContent=result.notice||'';root.append(note);
+ const table=document.createElement('table'),head=document.createElement('tr');
+ ['주문번호','검사 결과','배송 건수','송장 등록 건수'].forEach(x=>{const th=document.createElement('th');th.textContent=x;head.append(th)});
+ const thead=document.createElement('thead');thead.append(head);table.append(thead);
+ const body=document.createElement('tbody');
+ for(const row of result.results||[]){
+  const tr=document.createElement('tr');
+  [row.orderId,row.check,row.shipmentCount??'-',row.trackingCount??'-'].forEach(x=>tr.append(cell(x)));
+  body.append(tr);
+ }
+ table.append(body);root.append(table);root.classList.remove('hide');
+ message('선택한 주문의 송장 등록 여부 검사 완료. 검증이 필요한 건은 실제 출고와 대조하세요.');
+ }catch(e){message('송장 검사 실패: '+e.message,true)}
+ finally{$('audit').disabled=false;$('audit').textContent='표시 주문 송장 누락 검사'}
+};
 async function loadShipments(id){
  $('shipPanel').classList.remove('hide');$('shipments').textContent='배송정보 조회 중...';
  try{
