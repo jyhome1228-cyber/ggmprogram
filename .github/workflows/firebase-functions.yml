@@ -36,6 +36,22 @@ jobs:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
           create_credentials_file: true
           export_environment_variables: true
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Diagnose service-account API permissions
+        env:
+          DEPLOY_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          account = json.loads(os.environ["DEPLOY_JSON"])["client_email"]
+          print("Deployment service account: " + account)
+          print("Project: ggmapi-e15be")
+          PY
+          if ! gcloud services describe secretmanager.googleapis.com --project=ggmapi-e15be --format='value(state)'; then
+            echo "::error::The service account printed above cannot read the Secret Manager API service state. Grant roles/serviceusage.serviceUsageViewer on project ggmapi-e15be to THAT exact service account, not a different Firebase agent, and verify its key matches the GitHub secret. Secret Manager Admin alone does not grant serviceusage.services.get."
+            exit 1
+          fi
       - name: Install Firebase CLI and dependencies
         run: |
           npm install --global firebase-tools
