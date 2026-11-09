@@ -6,3 +6,9 @@ dist
 .env.*.local
 *.log
 .DS_Store
+
+functions/.env.*
+functions/.secret.local
+firebase-adminsdk*.json
+gha-creds-*.json
+functions/node_modules/
