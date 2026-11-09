@@ -40,27 +40,16 @@ jobs:
           export_environment_variables: true
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
-      - name: Diagnose deployment identity and retry Service Usage check
+      - name: Show deployment identity
         env:
           DEPLOY_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
         run: |
           python3 - <<'PY'
-          import json, os
-          info=json.loads(os.environ["DEPLOY_JSON"])
-          print("Firebase deployment service account: "+info["client_email"])
-          print("Firebase target project: ggmapi-e15be")
+          import json,os
+          config=json.loads(os.environ["DEPLOY_JSON"])
+          print("Deploying as service account:", config["client_email"])
+          print("Target project: ggmapi-e15be")
           PY
-          gcloud auth list --filter="status:ACTIVE" --format="value(account)"
-          for attempt in 1 2 3 4 5; do
-            if gcloud services describe secretmanager.googleapis.com --project=ggmapi-e15be --format="value(state)"; then
-              echo "Service Usage access verified."
-              exit 0
-            fi
-            echo "::warning::Service Usage permissions not effective, attempt $attempt/5"
-            if [ "$attempt" -lt 5 ]; then sleep 20; fi
-          done
-          echo "::error::IAM access still denied. Compare the exact 'Firebase deployment service account' above with the principal edited in Google Cloud IAM (project ggmapi-e15be). Correct role: roles/serviceusage.serviceUsageViewer. The problem is not the Cafe24 client secret."
-          exit 1
       - name: Install Firebase CLI and dependencies
         run: |
           npm install --global firebase-tools
