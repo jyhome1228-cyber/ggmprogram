@@ -47,7 +47,7 @@ async function tokenRequest(form){
 const withError = handler => async (req,res) => {
  try{await handler(req,res)}catch(e){
  const msg=String(e.message||e);
- const code=msg==='unauthorized'?401:msg==='forbidden'?403:500;
+ const code=msg==='unauthorized'?401:msg==='forbidden'?403:msg==='Cafe24 is not connected'?409:500;
  console.error('GGM API error:',msg.replace(/(token|secret)=[^& ]+/gi,'$1=[redacted]'));
  response(res,code,{error:code===500?'Server request failed':msg});
  }
@@ -128,7 +128,7 @@ exports.cafe24Orders = onRequest({region,secrets,invoker:'public'},withError(asy
    url.searchParams.set('start_date',start); url.searchParams.set('end_date',end);
    url.searchParams.set('date_type','order_date');
  }
- const r=await fetch(url,{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Cafe24-Api-Version':'2026-09-01'}});
+ const r=await fetch(url,{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
  if(!r.ok) return response(res,502,{error:'Cafe24 order read failed',upstreamStatus:r.status});
  const data=await r.json();
  // Raw order records can contain PII. Never write them to logs or a public collection.
@@ -146,7 +146,7 @@ exports.cafe24Shipments = onRequest({region,secrets,invoker:'public'},withError(
  const orderId=String(req.query.orderId||'');
  if(!/^[0-9]{8}-[0-9]{7,12}$/.test(orderId))return response(res,400,{error:'Invalid order ID'});
  const token=await accessToken();
- const r=await fetch(shopHost()+'/api/v2/admin/orders/'+encodeURIComponent(orderId)+'/shipments?shop_no=1',{headers:{Authorization:'Bearer '+token,'X-Cafe24-Api-Version':'2026-09-01'}});
+ const r=await fetch(shopHost()+'/api/v2/admin/orders/'+encodeURIComponent(orderId)+'/shipments?shop_no=1',{headers:{Authorization:'Bearer '+token}});
  if(!r.ok)return response(res,502,{error:'Cafe24 shipment read failed',upstreamStatus:r.status});
  const data=await r.json();
  response(res,200,{orderId,shipments:(data.shipments||[]).map(x=>({
@@ -160,7 +160,7 @@ exports.cafe24Status = onRequest({region,secrets:[],invoker:'public'},withError(
  if(req.method!=='GET')return response(res,405,{error:'method not allowed'});
  await verifyAdmin(req);
  const snap=await db.doc('privateIntegrations/cafe24').get();
- response(res,200,{connected:snap.exists && Boolean(snap.get('refresh_token')),mallConfigured:Boolean(mall.value())});
+ response(res,200,{connected:snap.exists && Boolean(snap.get('refresh_token')),mallConfigured:Boolean(mall.value()),service:'ggmapi-e15be',scopes:['mall.read_order']});
 }));
 
 /**
@@ -180,7 +180,7 @@ exports.cafe24Audit = onRequest({region,secrets,invoker:'public',timeoutSeconds:
  for(const orderId of ids){
    const url=shopHost()+'/api/v2/admin/orders/'+encodeURIComponent(orderId)+'/shipments?shop_no=1';
    try{
-     const r=await fetch(url,{headers:{Authorization:'Bearer '+token,'X-Cafe24-Api-Version':'2026-09-01'}});
+     const r=await fetch(url,{headers:{Authorization:'Bearer '+token}});
      if(!r.ok){results.push({orderId,check:'조회 실패',httpStatus:r.status});continue;}
      const payload=await r.json();
      const shipments=Array.isArray(payload.shipments)?payload.shipments:[];
