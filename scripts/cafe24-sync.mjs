@@ -72,39 +72,77 @@ if(!saved){console.log("NOT CONNECTED: one-time Cafe24 OAuth approval is still r
 const fresh=await cafeToken({grant_type:"refresh_token",refresh_token:saved.refresh_token});
 saved={access_token:fresh.access_token,refresh_token:fresh.refresh_token,expires_at:Date.now()+7200_000};
 await saveToken(saved);
-const to=new Date(),from=new Date(to.getTime()-(ttl-1)*86400000);
-const queryDates={start_date:dateOnly(from),end_date:dateOnly(to)};
-const orders=[];let complete=false;
-for(let offset=0;offset<1000;offset+=100){
- const params=new URLSearchParams({...queryDates,limit:"100",offset:String(offset),embed:"items"});
- const r=await fetch(BASE+"/admin/orders?"+params,{headers:{Authorization:"Bearer "+saved.access_token,"X-Cafe24-Api-Version":VERSION}});
- const j=await r.json().catch(()=>({}));
- if(!r.ok)fail("Cafe24 orders GET failed (HTTP "+r.status+"): "+String(j.error?.message||j.error||"unknown"));
- const batch=Array.isArray(j.orders)?j.orders:[];
- orders.push(...batch);
- if(batch.length<100){complete=true;break}
+
+const today=new Date();
+const from=new Date(today.getTime()-29*86400000);
+const period={start_date:dateOnly(from),end_date:dateOnly(today)};
+const orders=[];
+const chunks=[];
+for(let cursor=new Date(from);cursor<=today;cursor.setUTCDate(cursor.getUTCDate()+7)){
+ const end=new Date(Math.min(today.getTime(),cursor.getTime()+6*86400000));
+ chunks.push({start_date:dateOnly(cursor),end_date:dateOnly(end)});
 }
-if(!complete)fail("Over 1000 orders in 7 days; refusing to publish partial aggregates. Reduce date range or implement pagination.");
-const grouped=new Map();
-let itemRows=0,unmapped=0;
-for(const order of orders){
- const orderId=String(order.order_id||"");
+for(const window of chunks){
+ let complete=false;
+ for(let offset=0;offset<1000;offset+=100){
+  const params=new URLSearchParams({...window,limit:"100",offset:String(offset),embed:"items"});
+  const response=await fetch(BASE+"/admin/orders?"+params,{headers:{Authorization:"Bearer "+saved.access_token,"X-Cafe24-Api-Version":VERSION}});
+  const body=await response.json().catch(()=>({}));
+  if(!response.ok)fail("Cafe24 orders GET failed (HTTP "+response.status+"): "+String(body.error?.message||body.error||"unknown"));
+  const batch=Array.isArray(body.orders)?body.orders:[];
+  orders.push(...batch);
+  if(batch.length<100){complete=true;break;}
+ }
+ if(!complete)fail("Too many orders in a 7-day window; refusing to publish incomplete figures.");
+}
+const unique=new Map();
+for(const order of orders){if(order.order_id)unique.set(String(order.order_id),order);}
+const byProduct=new Map(),byDay=new Map(),byDayProduct=new Map();
+let itemRows=0,unmapped=0,unmappedDates=0;
+function groupKey(item){
+ return [String(item.product_no||""),String(item.product_name||"상품명 미확인"),String(item.option_value||item.option_name||"")];
+}
+function addProduct(map,key,orderId,qty){
+ const id=JSON.stringify(key);
+ const p=map.get(id)||{product_no:key[0],name:key[1],option:key[2],ids:new Set(),quantity:0};
+ p.ids.add(orderId);p.quantity+=qty;map.set(id,p);
+}
+for(const order of unique.values()){
+ const id=String(order.order_id);
+ const date=String(order.order_date||"").slice(0,10);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){unmappedDates++;continue;}
  const items=Array.isArray(order.items)?order.items:[];
- if(!items.length)unmapped++;
+ if(items.length===0){unmapped++;continue;}
+ const day=byDay.get(date)||{date,ids:new Set(),quantity:0};
+ day.ids.add(id);
  for(const item of items){
   itemRows++;
-  const name=String(item.product_name||"상품명 미확인");
-  const opt=String(item.option_value||item.option_name||"");
-  const key=String(item.product_no||"")+"|"+name+"|"+opt;
-  const p=grouped.get(key)||{name,option:opt,product_no:String(item.product_no||""),orderIds:new Set(),quantity:0,rows:0};
-  p.orderIds.add(orderId);p.quantity+=Number(item.quantity)||0;p.rows++;
-  grouped.set(key,p);
+  const qty=Number(item.quantity)||0;
+  const key=groupKey(item);
+  addProduct(byProduct,key,id,qty);
+  addProduct(byDayProduct,[date,...key],id,qty);
+  day.quantity+=qty;
  }
+ byDay.set(date,day);
 }
-if(unmapped)fail("Cafe24 embed items missing for "+unmapped+" orders; refusing misleading totals");
-const products=[...grouped.values()].map(p=>({name:p.name,option:p.option,product_no:p.product_no,orders:p.orderIds.size,quantity:p.quantity})).sort((a,b)=>b.quantity-a.quantity);
-const summary={schema:1,source:"Cafe24 Admin API",updated_at:new Date().toISOString(),period:queryDates,order_count:new Set(orders.map(o=>o.order_id)).size,order_item_rows:itemRows,total_quantity:products.reduce((a,p)=>a+p.quantity,0),products};
-// No names, phone numbers, addresses, order IDs, tracking codes or tokens are included.
+if(unmapped||unmappedDates)fail("Incomplete order item or date data: items="+unmapped+", dates="+unmappedDates+". Previous summary retained.");
+const normalize=map=>[...map.values()].map(p=>({...(p.date?{date:p.date}:{}),product_no:p.product_no,name:p.name,option:p.option,orders:p.ids.size,quantity:p.quantity})).sort((a,b)=>b.quantity-a.quantity);
+const products=normalize(byProduct);
+const daily=[...byDay.values()].map(d=>({date:d.date,orders:d.ids.size,quantity:d.quantity})).sort((a,b)=>b.date.localeCompare(a.date));
+
+const dailyProducts=[...byDayProduct.entries()].map(([key,p])=>{
+ const [date,product_no,name,option]=JSON.parse(key);
+ return {date,product_no,name,option,orders:p.ids.size,quantity:p.quantity};
+}).sort((a,b)=>b.date.localeCompare(a.date)||b.quantity-a.quantity);
+const summary={
+ schema:2,source:"Cafe24 Admin API",updated_at:new Date().toISOString(),period,
+ order_count:unique.size,order_item_rows:itemRows,
+ total_quantity:products.reduce((sum,p)=>sum+p.quantity,0),
+ products,daily,daily_products:dailyProducts,
+ notes:"주문 취소·환불 조정 전 상품 수량이며 배송완료 및 송장 등록 여부를 나타내지 않습니다."
+};
+// Public summary deliberately excludes personal names, phone numbers,
+// addresses, order numbers, tracking numbers and OAuth credentials.
 await mkdir("data",{recursive:true});
 await writeFile("data/summary.json",JSON.stringify(summary,null,2)+"\n");
-console.log("Anonymized product summary written, products:",products.length,"orders:",summary.order_count);
+console.log("Published product and date aggregates:",{orders:summary.order_count,products:products.length,days:daily.length});
