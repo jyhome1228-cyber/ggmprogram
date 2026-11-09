@@ -120,3 +120,28 @@ exports.cafe24Orders = onRequest({region,secrets,invoker:'public'},withError(asy
  // Raw order records can contain PII. Never write them to logs or a public collection.
  response(res,200,{orders:data.orders||[],pagination:{limit,offset}});
 }));
+
+/** Fetch shipping records for one order; supports partial shipments. Read-only. */
+exports.cafe24Shipments = onRequest({region,secrets,invoker:'public'},withError(async(req,res)=>{
+ if(preflight(req,res))return;
+ if(req.method!=='GET')return response(res,405,{error:'method not allowed'});
+ await verifyAdmin(req);
+ const orderId=String(req.query.orderId||'');
+ if(!/^[0-9]{8}-[0-9]{7,12}$/.test(orderId))return response(res,400,{error:'Invalid order ID'});
+ const token=await accessToken();
+ const r=await fetch(shopHost()+'/api/v2/admin/orders/'+encodeURIComponent(orderId)+'/shipments?shop_no=1',{headers:{Authorization:'Bearer '+token,'X-Cafe24-Api-Version':'2026-09-01'}});
+ if(!r.ok)return response(res,502,{error:'Cafe24 shipment read failed',upstreamStatus:r.status});
+ const data=await r.json();
+ response(res,200,{orderId,shipments:(data.shipments||[]).map(x=>({
+    shipping_code:x.shipping_code,status:x.status,tracking_no:x.tracking_no,
+    shipping_company_code:x.shipping_company_code,items:x.items||[]
+ }))});
+}));
+/** Non-sensitive connection diagnostics; admin only. */
+exports.cafe24Status = onRequest({region,secrets:[],invoker:'public'},withError(async(req,res)=>{
+ if(preflight(req,res))return;
+ if(req.method!=='GET')return response(res,405,{error:'method not allowed'});
+ await verifyAdmin(req);
+ const snap=await db.doc('privateIntegrations/cafe24').get();
+ response(res,200,{connected:snap.exists && Boolean(snap.get('refresh_token')),mallConfigured:Boolean(mall.value())});
+}));
