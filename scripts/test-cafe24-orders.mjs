@@ -12,11 +12,21 @@ const saved=JSON.parse(await readFile("data/oauth-token.enc","utf8"));
 const decipher=createDecipheriv("aes-256-gcm",key,Buffer.from(saved.iv,"base64"));
 decipher.setAuthTag(Buffer.from(saved.tag,"base64"));
 const token=JSON.parse(Buffer.concat([decipher.update(Buffer.from(saved.data,"base64")),decipher.final()]).toString("utf8"));
-if(!token.access_token)throw Error("Saved access token unavailable");
+if(!token.refresh_token)throw Error("Saved refresh token unavailable");
+const oauthURL="https://"+mall+".cafe24api.com/api/v2/oauth/token";
+const auth="Basic "+Buffer.from(clientId+":"+clientSecret).toString("base64");
+const refreshResponse=await fetch(oauthURL,{
+ method:"POST",
+ headers:{"Authorization":auth,"Content-Type":"application/x-www-form-urlencoded"},
+ body:new URLSearchParams({grant_type:"refresh_token",refresh_token:token.refresh_token})
+});
+const refreshed=await refreshResponse.json().catch(()=>({}));
+if(!refreshResponse.ok||!refreshed.access_token)throw Error("Cafe24 refresh token failed (HTTP "+refreshResponse.status+"): "+String(refreshed.error?.code||refreshed.error||"unknown"));
+const activeToken=refreshed.access_token;
 const base="https://"+mall+".cafe24api.com/api/v2/admin";
 const version="2025-12-01";
 async function get(path){
- const response=await fetch(base+path,{headers:{"Authorization":"Bearer "+token.access_token,"X-Cafe24-Api-Version":version}});
+ const response=await fetch(base+path,{headers:{"Authorization":"Bearer "+activeToken,"X-Cafe24-Api-Version":version}});
  const body=await response.json().catch(()=>({}));
  if(!response.ok){
   const issue=String(body.error?.code||body.error||response.status);
