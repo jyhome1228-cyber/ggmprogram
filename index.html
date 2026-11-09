@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#667f89">
+<title>건강미 | Order & CS Management</title>
+<style>
+:root{--brand:#667f89;--brand-dark:#425c67;--ink:#20313a;--muted:#85939a;--bg:#f5f7f8;--surface:#fff;--line:#e5eaed;--soft:#eff3f4;--green:#2d806c;--shadow:0 4px 22px rgba(23,47,57,.035)}*{box-sizing:border-box}body{margin:0;background:var(--bg);font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",Arial,sans-serif;color:var(--ink)}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--brand);outline-offset:2px}.app{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}.sidebar{background:#fff;border-right:1px solid var(--line);padding:26px 17px;display:flex;flex-direction:column;gap:26px;position:sticky;top:0;height:100vh}.brand{display:flex;align-items:center;gap:12px;padding:2px 8px}.brand svg,.brand img{width:53px;height:68px;object-fit:contain;flex:none}.brand strong{display:block;font-size:20px;font-weight:800;letter-spacing:-1px}.brand small{display:block;color:#84959c;font-size:9px;letter-spacing:1.4px;font-weight:800}.side-label{font-size:10px;letter-spacing:1.5px;color:#acb5b9;margin:8px 13px}.nav{display:grid;gap:5px}.nav button{border:0;display:flex;align-items:center;gap:11px;width:100%;background:none;color:#6f7f88;border-radius:10px;padding:12px 13px;text-align:left;font-size:13px;font-weight:600}.nav button.active{background:#eaf0f2;color:var(--brand-dark);font-weight:800}.nav button:hover:not(.active){background:#f6f8f9}.nav button:disabled{opacity:.45;cursor:not-allowed}.nav .ico{width:20px;text-align:center;font-size:16px}.sidebar-note{margin-top:auto;padding:16px;background:#f5f8f9;border-radius:12px;color:#82939a;font-size:11px;line-height:1.8}.live-dot{display:inline-block;width:7px;height:7px;background:#3c9b83;border-radius:50%;margin-right:6px}.content{padding:32px 38px 55px;min-width:0;max-width:1640px;width:100%;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-bottom:21px;border-bottom:1px solid var(--line)}.crumb{color:#86959c;font-size:12px}.top-right{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.tag{padding:6px 11px;border-radius:30px;border:1px solid #dbe5e8;color:var(--brand-dark);font-size:11px;background:#f8fafb}.btn{border:1px solid #dbe4e7;background:#fff;border-radius:9px;padding:10px 15px;color:#4e6570;font-weight:700;font-size:12px;white-space:nowrap;min-height:40px}.btn.primary{color:#fff;background:var(--brand);border-color:var(--brand)}.btn:hover{filter:brightness(.96)}.btn:disabled{opacity:.45;cursor:not-allowed}.intro{display:flex;justify-content:space-between;gap:20px;align-items:flex-end;margin:30px 0 22px}.overline{color:var(--brand);font-size:11px;font-weight:800;letter-spacing:1.9px}h1{font-size:28px;letter-spacing:-.8px;margin:5px 0 7px;font-weight:800}.description{font-size:13px;color:#8b999f;margin:0}.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.stat,.panel{border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow)}.stat{padding:19px 21px;min-height:119px}.stat .metric-label{color:#8b9aa1;font-size:12px}.stat b{display:block;font-weight:800;font-size:27px;letter-spacing:-.7px;margin-top:13px;line-height:1.25}.stat .sub{color:#9aa6ac;font-size:11px;margin-top:7px}.filters{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px 18px;margin:19px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}.filters .lbl{font-weight:700;font-size:12px;margin-right:4px;color:#6f7f88}.date{height:40px;padding:9px 10px;border:1px solid #dfe7e9;border-radius:8px;max-width:153px;color:#526773;background:#fff;font-size:12px}.preset{border:1px solid #e3e9ea;background:#fff;color:#829198;padding:9px 12px;border-radius:8px;font-size:12px;min-height:40px}.preset.active{color:#fff;background:var(--brand);border-color:var(--brand)}.search{height:40px;min-width:220px;flex:1;padding:9px 13px;border:1px solid #dfe7e9;border-radius:8px;background:#fff;font-size:12px}.panel{padding:22px 23px;margin-top:17px}.panel-top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:17px;flex-wrap:wrap}h2{font-size:17px;font-weight:800;letter-spacing:-.3px;margin:0}.tiny{color:#94a0a7;font-size:12px}.segment{display:flex;gap:3px;border:1px solid #dfe6e8;background:#f7f9fa;padding:3px;border-radius:9px}.segment button{border:0;background:transparent;color:#8a979c;padding:7px 12px;font-size:12px;border-radius:6px}.segment button.active{background:#fff;color:var(--brand-dark);box-shadow:0 1px 4px #dfe6e8;font-weight:800}.tablewrap{overflow:auto;max-height:630px}table{border-collapse:collapse;width:100%;min-width:720px;text-align:left}th{background:#f9fbfb;color:#8d9ca3;font-size:11px;font-weight:700;position:sticky;top:0}td{font-size:12px;color:#566b74}td,th{border-bottom:1px solid #edf1f2;padding:14px 12px}tbody tr:hover{background:#fafcfc}.num{text-align:right;font-variant-numeric:tabular-nums}.strong{font-weight:800;color:#334a53}.pill{font-size:11px;border-radius:7px;padding:5px 9px;background:#edf3f4;color:#647f89}.notice{background:#edf4f5;border:1px solid #dfebee;color:#607c86;border-radius:12px;padding:15px 17px;font-size:12px;margin-bottom:17px}.notice.warn{background:#fff8ed;border-color:#f4e6d1;color:#916b3c}.empty{padding:65px 18px;text-align:center;color:#9ba9af}.foot{margin-top:19px;font-size:11px;line-height:1.8;color:#95a2a8}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.status-table{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.mini{background:#f7f9fa;border:1px solid #e5ebed;border-radius:10px;padding:15px;color:#73868f;font-size:12px}.mini b{display:block;color:#3e5560;margin-top:7px}.hidden{display:none!important}.brandbar{display:block;background:linear-gradient(110deg,#607983,#8aa0a7);height:3px;border-radius:5px;margin-bottom:18px}.chart{display:flex;align-items:end;gap:8px;height:128px;padding:10px 4px 0;border-bottom:1px solid #e8eef0}.barcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;min-width:18px}.bar{background:#91aab2;border-radius:5px 5px 0 0;min-height:3px;width:min(28px,75%)}.barcol small{color:#9ba8ad;font-size:9px;margin-top:5px;white-space:nowrap}.help{background:#f7f9fa;border-radius:12px;padding:17px;font-size:13px;line-height:1.9;color:#74858d}.info{font-weight:800;color:#4f6974}.right{margin-left:auto}@media(max-width:1060px){.app{grid-template-columns:195px minmax(0,1fr)}.sidebar{padding:21px 11px}.content{padding:24px}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.brand img{width:43px;height:60px}.brand strong{font-size:18px}}@media(max-width:750px){.app{display:block}.sidebar{height:auto;position:relative;padding:11px 13px;gap:10px}.brand{padding:0}.brand img{width:32px;height:46px}.brand strong{font-size:16px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;font-size:12px;padding:10px}.side-label,.sidebar-note{display:none}.content{padding:16px}.top{padding-bottom:12px}.intro{align-items:flex-start;flex-wrap:wrap;margin:22px 0 16px}h1{font-size:23px}.filters{padding:12px}.stat{padding:15px;min-height:102px}.stat b{font-size:23px}.panel{padding:15px}.status-table{grid-template-columns:1fr}.date{max-width:136px}.search{width:100%;flex-basis:100%}}
+</style></head><body><div class="app">
+<aside class="sidebar"><div class="brand"><img src="assets/ggm-logo.svg" alt="건강미 공식 로고"><div><strong>건강미</strong><small>ORDER OPERATIONS</small></div></div><div><div class="side-label">WORKSPACE</div><nav class="nav" id="nav">
+<button class="active" data-view="overview"><span class="ico">▦</span>운영 대시보드</button>
+<button data-view="products"><span class="ico">▤</span>제품별 주문현황</button>
+<button data-view="daily"><span class="ico">▥</span>일자별 주문현황</button>
+<button data-view="shipping"><span class="ico">▣</span>배송·CS 관리</button>
+<button data-view="data"><span class="ico">⌁</span>데이터 관리</button>
+</nav></div><div class="sidebar-note"><span class="live-dot"></span>CAFE24 CONNECTED<br>개인정보 없는 집계 전용 화면<br>고객·주소·송장 조회는 관리자 인증 서버 연동 후 제공</div></aside>
+<main class="content"><div class="top"><div class="crumb">건강미 <span style="color:#bbc5ca"> / </span> Order Operations <span style="color:#bbc5ca"> / </span> <b id="breadcrumb">운영 대시보드</b></div><div class="top-right"><span class="tag">Cafe24 API 연동</span><button class="btn" id="reload">↻ 최신 데이터 확인</button></div></div>
+<div class="intro"><div><div class="overline">GGM OPERATIONS CENTER</div><h1 id="title">운영 대시보드</h1><p class="description" id="desc">건강미의 제품 및 날짜별 주문 흐름을 한눈에 확인하세요.</p></div><div class="actions"><span id="asof" class="tiny">데이터 확인 중</span><button class="btn primary" id="export">↓ CSV 다운로드</button></div></div>
+<div class="brandbar"></div><div id="notice" class="notice">카페24에서 집계된 데이터를 불러오고 있습니다.</div>
+<div class="filters"><span class="lbl">조회 기간</span><button class="preset" data-range="today">오늘</button><button class="preset" data-range="yesterday">어제</button><button class="preset" data-range="7">최근 7일</button><button class="preset active" data-range="30">최근 30일</button><input class="date" id="start" type="date" aria-label="시작일"><span class="tiny">~</span><input class="date" id="end" type="date" aria-label="종료일"><input id="search" class="search" placeholder="제품명·옵션명 검색" aria-label="제품 검색"></div>
+<div class="grid"><div class="stat"><div class="metric-label">조회기간 주문건수</div><b id="kOrders">—</b><div class="sub">중복 없는 주문건수</div></div><div class="stat"><div class="metric-label">제품 판매수량</div><b id="kQty">—</b><div class="sub">상품 옵션별 수량 합계</div></div><div class="stat"><div class="metric-label">판매 상품·옵션</div><b id="kProducts">—</b><div class="sub">조회 기간의 분류 수</div></div><div class="stat"><div class="metric-label">수집 상태</div><b id="kStatus" style="font-size:19px">확인 중</b><div class="sub" id="kPeriod">카페24 API 집계</div></div></div>
+<div id="body"></div><div class="foot">※ 이 화면의 수치는 카페24 주문 데이터 기반의 상품수량 집계이며 취소·반품·환불에 따른 순판매수량을 보장하지 않습니다. 개인정보와 송장 정보는 공개 GitHub Pages에 저장하지 않습니다.</div></main></div>
+<script>
+(function(){
+"use strict";
+var state={view:"overview",summary:null,start:"",end:"",search:"",loading:false};
+var labels={overview:["운영 대시보드","제품 및 날짜별 주문 흐름을 한눈에 확인하세요."],products:["제품별 주문현황","제품별 판매수량과 옵션별 주문건수를 확인하세요."],daily:["일자별 주문현황","주문일에 따른 제품 판매 흐름을 비교하세요."],shipping:["배송·CS 관리","송장·배송 상태 확인을 위한 관리자 기능 준비 현황입니다."],data:["데이터 관리","카페24 수집 범위와 다운로드 항목을 확인하세요."]};
+var el=id=>document.getElementById(id);
+var esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+var number=n=>Number(n||0).toLocaleString("ko-KR");
+var iso=d=>{var x=new Date(d);return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")};
+var back=n=>{var d=new Date();d.setDate(d.getDate()-n);return iso(d)};
+var sum=(arr,key)=>arr.reduce((a,b)=>a+Number(b[key]||0),0);
+var grouped=(arr)=>{
+ var m=new Map();arr.forEach(x=>{var key=JSON.stringify([x.product_no,x.name,x.option]);var z=m.get(key)||{product_no:x.product_no,name:x.name,option:x.option,orders:0,quantity:0};z.orders+=Number(x.orders||0);z.quantity+=Number(x.quantity||0);m.set(key,z)});
+ return Array.from(m.values()).sort((a,b)=>b.quantity-a.quantity);
+};
+function sourceDates(){var s=state.summary;return s?.period||null}
+function ranged(){var s=state.summary;if(!s)return [];var a=s.daily_products||[];return a.filter(x=>x.date>=state.start&&x.date<=state.end).filter(x=>(x.name+" "+x.option).toLowerCase().includes(state.search.toLowerCase()))}
+function days(){var s=state.summary;if(!s)return [];var d=s.daily||[];return d.filter(x=>x.date>=state.start&&x.date<=state.end).sort((a,b)=>a.date.localeCompare(b.date))}
+function products(){return grouped(ranged())}
+function table(headers,rows){if(!rows.length)return '<div class="empty">선택한 조건에 해당하는 집계가 없습니다.</div>';return '<div class="tablewrap"><table><thead><tr>'+headers.map((h,i)=>'<th'+(i>1?' class="num"':'')+'>'+h+'</th>').join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table></div>'}
+function pRow(p){return '<tr><td class="strong">'+esc(p.name)+'</td><td>'+esc(p.option||"기본 옵션")+'</td><td class="num">'+number(p.orders)+'건</td><td class="num strong">'+number(p.quantity)+'개</td></tr>'}
+function productTable(arr){return table(["제품명","옵션","주문건수","판매수량"],arr.map(pRow))}
+function dailyTable(arr){return table(["주문일","구분","주문건수","판매수량"],arr.slice().reverse().map(d=>'<tr><td class="strong">'+esc(d.date)+'</td><td>전체 상품</td><td class="num">'+number(d.orders)+'건</td><td class="num strong">'+number(d.quantity)+'개</td></tr>'))}
+function draw(){
+ var s=state.summary;
+ document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));
+ el("title").textContent=labels[state.view][0];el("breadcrumb").textContent=labels[state.view][0];el("desc").textContent=labels[state.view][1];
+ el("export").disabled=!s||state.view==="shipping";
+ if(!s){el("body").innerHTML='<section class="panel"><div class="empty">최근 집계 데이터가 없습니다. GitHub Actions 동기화 결과를 확인해주세요.</div></section>';return}
+ if(s.schema<2||!Array.isArray(s.daily_products)){
+  var legacy=(s.products||[]).filter(x=>(x.name+" "+x.option).toLowerCase().includes(state.search.toLowerCase()));
+  el("kOrders").textContent=state.search?"—":number(s.order_count)+"건";
+  el("kQty").textContent=number(sum(legacy,"quantity"))+"개";
+  el("kProducts").textContent=number(legacy.length)+"종";
+  el("kStatus").textContent="일별 갱신 대기";
+  document.querySelectorAll("[data-range]").forEach(b=>b.disabled=true);
+  el("start").disabled=true;el("end").disabled=true;
+  el("kPeriod").textContent=s.period.start_date+" ~ "+s.period.end_date;
+  el("asof").textContent="기존 집계 "+new Date(s.updated_at).toLocaleString("ko-KR");
+  el("body").innerHTML='<section class="panel"><h2>제품별 주문 현황</h2><p class="tiny">기존 7일 집계입니다. 새 API 수집 완료 후 일자별 필터가 활성화됩니다.</p>'+productTable(legacy)+'</section>';
+  el("export").disabled=!legacy.length;
+  el("notice").className="notice warn";
+  el("notice").textContent="이전 데이터 표시 중 · 새 일자별 집계가 아직 생성되지 않았습니다. 기존 판매수량은 그대로 확인할 수 있습니다.";
+  return;
+ }
+ document.querySelectorAll("[data-range]").forEach(b=>b.disabled=false);
+ el("start").disabled=false;el("end").disabled=false;
+ var d=days(),p=products(),r=ranged();
+ // For a product search, summing per-product order counts can double-count multi-product orders.
+ // Consequently display exact distinct daily order totals only when no product search applies.
+ var exact=!state.search;
+ el("kOrders").textContent=exact?number(sum(d,"orders"))+"건":"—";
+ el("kQty").textContent=number(sum(r,"quantity"))+"개";
+ el("kProducts").textContent=number(p.length)+"종";
+ el("kStatus").textContent="동기화 완료";
+ el("kPeriod").textContent=s.period.start_date+" ~ "+s.period.end_date;
+ el("asof").textContent="업데이트 "+new Date(s.updated_at).toLocaleString("ko-KR");
+ var html="";
+ if(state.view==="overview"){
+  var graph=d.slice(-14),max=Math.max(1,...graph.map(x=>x.quantity));
+  html+='<section class="panel"><div class="panel-top"><div><h2>일별 판매 추이</h2><span class="tiny">최근 조회기간 중 최대 14일 · 수량 기준</span></div><span class="pill">DAILY TREND</span></div>';
+  html+='<div class="chart">'+graph.map(x=>'<div class="barcol" title="'+esc(x.date+': '+x.quantity+'개')+'"><div class="bar" style="height:'+Math.max(3,Math.round(x.quantity/max*105))+'px"></div><small>'+esc(x.date.slice(5))+'</small></div>').join('')+'</div></section>';
+  html+='<section class="panel"><div class="panel-top"><h2>판매 상위 제품·옵션</h2><button class="btn" id="allProducts">전체 제품 보기 →</button></div>'+productTable(p.slice(0,8))+'</section>';
+ }else if(state.view==="products"){
+  html+='<section class="panel"><div class="panel-top"><div><h2>제품·옵션별 상세 집계</h2><div class="tiny">상품명을 검색하거나 조회기간을 변경하면 집계가 함께 갱신됩니다.</div></div><span class="pill">'+number(p.length)+'개 옵션</span></div>'+productTable(p)+'</section>';
+ }else if(state.view==="daily"){
+  if(state.search){var byDate=new Map();r.forEach(x=>{var o=byDate.get(x.date)||{date:x.date,orders:0,quantity:0};o.orders+=x.orders;o.quantity+=x.quantity;byDate.set(x.date,o)});var matches=Array.from(byDate.values()).sort((a,b)=>a.date.localeCompare(b.date));html+='<div class="notice warn">상품 검색 중 표시되는 주문건수는 상품·옵션별 주문건수의 합으로, 여러 옵션을 한 주문에서 구매하면 중복될 수 있습니다.</div><section class="panel"><h2>선택 제품의 날짜별 집계</h2>'+dailyTable(matches)+'</section>'}
+  else html+='<section class="panel"><div class="panel-top"><h2>일자별 주문 집계</h2><span class="pill">'+d.length+'일</span></div>'+dailyTable(d)+'</section>';
+  html+='<section class="panel"><div class="panel-top"><h2>날짜 × 제품별 상세</h2><span class="tiny">엑셀 다운로드에 포함되는 데이터</span></div>'+table(["주문일","제품명·옵션","주문건수","판매수량"],r.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+esc(x.date)+'</td><td class="strong">'+esc(x.name)+'<span class="tiny"> · '+esc(x.option||"기본 옵션")+'</span></td><td class="num">'+number(x.orders)+'건</td><td class="num">'+number(x.quantity)+'개</td></tr>'))+'</section>';
+ }else if(state.view==="shipping"){
+  html+='<section class="panel"><h2>배송·CS 모듈</h2><p class="description" style="margin:10px 0 18px">현재 GitHub Pages는 누구나 접속 가능한 정적 페이지이므로 고객 주소·수령인·송장번호를 표시하지 않습니다.</p><div class="status-table"><div class="mini">송장번호 조회<b>관리자 인증 API 필요</b></div><div class="mini">미배송 주문 추출<b>주문/출고 상태 API 검증 필요</b></div><div class="mini">CS 처리메모<b>비공개 데이터 저장소 필요</b></div></div><p class="foot"><a class="btn primary" href="private-orders.html" style="display:inline-block;text-decoration:none;margin-top:16px">수령인·배송지 CSV 조회 열기 →</a><br><br>API 기반 수령인·송장 조회는 별도 인증 서버가 필요한 기능입니다.</p></section>';
+ }else{
+  html+='<section class="panel"><h2>데이터 수집 및 다운로드</h2><div class="help" style="margin-top:14px">API 수집: 카페24 주문 및 주문상품 정보<br>집계 범위: '+esc(s.period.start_date)+' ~ '+esc(s.period.end_date)+'<br>동기화: GitHub Actions 매시간 실행 예정<br>조회 유형: 제품별 / 일자별 / 일자×제품별<br>엑셀: CSV 형식, 검색 기간 및 조건 반영<br>제외: 고객명·연락처·주소·주문번호·송장정보</div><p class="foot">과거 주문 전체를 조회하려면 날짜 범위를 나눠 누적 수집하는 기능을 추가해야 합니다. 현재 보이는 데이터는 수집된 기간으로 한정됩니다.</p></section>';
+ }
+ el("body").innerHTML=html;
+ el("allProducts")?.addEventListener("click",()=>{state.view="products";draw()});
+ el("notice").classList.toggle("hidden",!state.search);
+ if(state.search){el("notice").className="notice warn";el("notice").textContent="제품명 검색 시 주문건수의 중복 없는 전체 합계는 표시하지 않습니다. 판매수량은 검색된 상품만 합산합니다."}
+}
+function setRange(type){
+ var p=sourceDates();var end=p?p.end_date:back(0),start=p?p.start_date:back(29);
+ if(type==="today"){start=end=back(0)}else if(type==="yesterday"){start=end=back(1)}else if(type==="7"){start=back(6)}else if(type==="30"){start=back(29)}
+ if(p){start=start<p.start_date?p.start_date:start;end=end>p.end_date?p.end_date:end;}
+ state.start=start;state.end=end;el("start").value=start;el("end").value=end;
+ document.querySelectorAll("[data-range]").forEach(b=>b.classList.toggle("active",b.dataset.range===type));
+ draw();
+}
+function download(){
+ var s=state.summary;if(!s||state.view==="shipping")return;
+ if(s.schema<2||!Array.isArray(s.daily_products)){
+  var legacy=(s.products||[]).filter(x=>(x.name+" "+x.option).toLowerCase().includes(state.search.toLowerCase()));
+  if(!legacy.length)return alert("내려받을 제품 데이터가 없습니다.");
+  var cell=v=>{var t=String(v==null?"":v);if(/^[=+@\-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'};
+  var csv="\uFEFF"+[["제품명","옵션","주문건수","판매수량"],...legacy.map(x=>[x.name,x.option,x.orders,x.quantity])].map(row=>row.map(cell).join(",")).join("\r\n");
+  var url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");
+  a.href=url;a.download="건강미_기존7일집계.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),500);return;
+ }
+ var records,headers,name;
+ if(state.view==="daily"){headers=["주문일","제품명","옵션","주문건수","판매수량"];records=ranged().map(x=>[x.date,x.name,x.option,x.orders,x.quantity]);name="일자별_제품주문"}
+ else{headers=["제품명","옵션","주문건수","판매수량"];records=products().map(x=>[x.name,x.option,x.orders,x.quantity]);name="제품별_주문현황"}
+ if(!records.length)return alert("해당 조건에 다운로드할 자료가 없습니다.");
+ var cell=v=>{var t=String(v==null?"":v);if(/^[=+@\-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'};
+ var csv="\uFEFF"+[headers,...records].map(row=>row.map(cell).join(",")).join("\r\n");
+ var url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));var a=document.createElement("a");a.href=url;a.download="건강미_"+name+"_"+state.start+"_"+state.end+".csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+async function load(){
+ el("notice").className="notice";el("notice").textContent="최신 집계를 확인하고 있습니다.";
+ try{
+  var response=await fetch("data/summary.json?t="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw Error("집계 데이터가 없습니다");
+  var j=await response.json();
+  if(!Array.isArray(j.products)||!j.period||!j.updated_at)throw Error("집계 형식을 확인할 수 없습니다");
+  state.summary=j;
+  if(!state.start||!state.end){state.start=j.period.start_date;state.end=j.period.end_date;}
+  if(j.schema<2||!Array.isArray(j.daily_products)||!Array.isArray(j.daily)){
+   el("notice").className="notice warn";el("notice").textContent="이전 집계 데이터입니다. 새 수집 코드가 실행되면 일자별 집계가 표시됩니다.";
+  }else{el("notice").classList.add("hidden")}
+  el("start").min=j.period.start_date;el("start").max=j.period.end_date;el("end").min=j.period.start_date;el("end").max=j.period.end_date;
+  if(j.schema<2){state.start=j.period.start_date;state.end=j.period.end_date;document.querySelectorAll("[data-range]").forEach(b=>b.classList.remove("active"));}
+  el("start").value=state.start;el("end").value=state.end;
+  draw();
+ }catch(e){el("notice").className="notice warn";el("notice").textContent="집계 데이터가 아직 준비되지 않았습니다. GitHub Actions의 수집 상태를 확인해주세요.";el("kStatus").textContent="연동 대기";draw();}
+}
+document.querySelectorAll("[data-view]").forEach(b=>b.addEventListener("click",()=>{state.view=b.dataset.view;draw()}));
+document.querySelectorAll("[data-range]").forEach(b=>b.addEventListener("click",()=>setRange(b.dataset.range)));
+["start","end"].forEach(id=>el(id).addEventListener("change",()=>{state.start=el("start").value;state.end=el("end").value;if(state.start>state.end){alert("시작일은 종료일보다 늦을 수 없습니다.");return;}document.querySelectorAll("[data-range]").forEach(b=>b.classList.remove("active"));draw()}));
+el("search").addEventListener("input",e=>{state.search=e.target.value.trim();draw()});
+el("export").addEventListener("click",download);
+el("reload").addEventListener("click",load);
+load();
+})();
+</script></body></html>
