@@ -49,7 +49,8 @@ function draw(){
  if(!s){el("body").innerHTML='<section class="panel"><div class="empty">최근 집계 데이터가 없습니다. GitHub Actions 동기화 결과를 확인해주세요.</div></section>';return}
  if(s.schema<2||!Array.isArray(s.daily_products)){
   var legacy=(s.products||[]).filter(x=>(x.name+" "+x.option).toLowerCase().includes(state.search.toLowerCase()));
-  el("kOrders").textContent=state.search?"—":number(s.order_count)+"건";
+  var legacyFiltered=state.search.length>0;
+  el("kOrders").textContent=legacyFiltered?"—":number(s.order_count)+"건";
   el("kQty").textContent=number(sum(legacy,"quantity"))+"개";
   el("kProducts").textContent=number(legacy.length)+"종";
   el("kStatus").textContent="일별 갱신 대기";
@@ -57,10 +58,24 @@ function draw(){
   el("start").disabled=true;el("end").disabled=true;
   el("kPeriod").textContent=s.period.start_date+" ~ "+s.period.end_date;
   el("asof").textContent="기존 집계 "+new Date(s.updated_at).toLocaleString("ko-KR");
-  el("body").innerHTML='<section class="panel"><h2>제품별 주문 현황</h2><p class="tiny">기존 7일 집계입니다. 새 API 수집 완료 후 일자별 필터가 활성화됩니다.</p>'+productTable(legacy)+'</section>';
-  el("export").disabled=!legacy.length;
+  el("export").disabled=state.view!=="products"&&state.view!=="overview"||!legacy.length;
   el("notice").className="notice warn";
-  el("notice").textContent="이전 데이터 표시 중 · 새 일자별 집계가 아직 생성되지 않았습니다. 기존 판매수량은 그대로 확인할 수 있습니다.";
+  el("notice").textContent="현재 "+s.period.start_date+" ~ "+s.period.end_date+"의 합산 데이터만 있습니다. 일자별 집계는 아직 생성되지 않았습니다.";
+  var legacyBody="";
+  if(state.view==="overview"){
+    legacyBody='<section class="panel"><div class="panel-top"><h2>전체 판매현황 요약</h2><span class="pill">기존 '+number(s.order_count)+'건 집계</span></div><div class="help">현재 확인 가능한 주문 데이터는 '+esc(s.period.start_date)+'부터 '+esc(s.period.end_date)+'까지입니다.<br>주문 '+number(s.order_count)+'건 · 상품 '+number(s.total_quantity)+'개 · 제품옵션 '+number(s.products.length)+'종을 수집했습니다.<br>일별 판매 추이는 다음 집계가 완료되면 활성화됩니다.</div></section>';
+    legacyBody+='<section class="panel"><div class="panel-top"><h2>판매량 상위 제품</h2><button class="btn" id="allProducts">전체 제품 보기 →</button></div>'+productTable(legacy.slice().sort((a,b)=>b.quantity-a.quantity).slice(0,5))+'</section>';
+  }else if(state.view==="products"){
+    legacyBody='<section class="panel"><div class="panel-top"><div><h2>제품·옵션별 주문 목록</h2><p class="tiny">해당 기간에 판매된 제품 전체를 조회합니다.</p></div><span class="pill">'+number(legacy.length)+'개 제품·옵션</span></div>'+productTable(legacy)+'</section>';
+  }else if(state.view==="daily"){
+    legacyBody='<section class="panel"><h2>일자별 주문현황</h2><div class="empty"><b>일별 데이터 수집 대기 중</b><p>현재 저장된 자료는 7일 합산 데이터로, 특정 날짜의 주문건수·판매량을 계산할 수 없습니다.</p><p>새 일별 집계가 생성되면 날짜별 주문표와 그래프가 이 화면에 표시됩니다.</p></div></section>';
+  }else if(state.view==="shipping"){
+    legacyBody='<section class="panel"><h2>배송·CS 관리</h2><p class="description" style="margin:12px 0 18px">주문자·수령인·주소·송장번호는 현재 공개 제품별 집계에 포함되지 않습니다.</p><div class="status-table"><div class="mini">주문·수령인 조회<b>로컬 CSV 조회 지원</b></div><div class="mini">송장번호 확인<b>로컬 CSV 조회 지원</b></div><div class="mini">자동 배송누락 탐지<b>관리자용 비공개 API 필요</b></div></div><p style="margin-top:20px"><a class="btn primary" href="private-orders.html" style="display:inline-block;text-decoration:none">주문·배송 상세조회 열기 →</a></p><p class="foot">파일은 사용 중인 브라우저에서만 처리하며 GitHub로 업로드되지 않습니다.</p></section>';
+  }else if(state.view==="data"){
+    legacyBody='<section class="panel"><h2>데이터 관리</h2><div class="help" style="margin-top:15px">현재 집계 기간: '+esc(s.period.start_date)+' ~ '+esc(s.period.end_date)+'<br>주문건수: '+number(s.order_count)+'건<br>상품 판매수량: '+number(s.total_quantity)+'개<br>상품·옵션: '+number(s.products.length)+'종<br>마지막 성공 수집: '+new Date(s.updated_at).toLocaleString("ko-KR")+'<br>일자별 데이터: 아직 없음</div><p style="margin-top:18px"><a class="btn" href="https://github.com/jyhome1228-cyber/ggmprogram/actions/workflows/cafe24-github-only.yml" target="_blank" rel="noopener">카페24 데이터 수집 상태 확인 ↗</a></p><p class="foot">CSV는 제품별 주문현황 메뉴에서 다운로드할 수 있습니다. 고객 개인정보와 전체 주문 상세는 공개 집계에 포함되지 않습니다.</p></section>';
+  }
+  el("body").innerHTML=legacyBody;
+  el("allProducts")?.addEventListener("click",()=>{state.view="products";draw()});
   return;
  }
  document.querySelectorAll("[data-range]").forEach(b=>b.disabled=false);
