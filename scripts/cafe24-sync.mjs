@@ -36,7 +36,7 @@ async function saveToken(payload){
  const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",cipherKey,iv);
  const encrypted=Buffer.concat([cipher.update(JSON.stringify(payload),"utf8"),cipher.final()]);
  await mkdir("data",{recursive:true});
- await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\\n");
+ await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
 async function cafeToken(body){
  const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
@@ -54,7 +54,7 @@ if(CODE){
  console.log("Initial Cafe24 OAuth connection established");
 }
 if(!saved){console.log("NOT CONNECTED: one-time Cafe24 OAuth approval is still required. No private order data was published.");process.exit(0)}
-// Renew on each sync; persist rotated refresh token exclusively in Google Secret Manager.
+// Renew on each sync; persist rotated refresh token as encrypted GitHub repository state.
 const fresh=await cafeToken({grant_type:"refresh_token",refresh_token:saved.refresh_token});
 saved={access_token:fresh.access_token,refresh_token:fresh.refresh_token,expires_at:Date.now()+7200_000};
 await saveToken(saved);
