@@ -1,0 +1,1 @@
+export default function handler(req,res){res.setHeader("Cache-Control","no-store");res.status(200).json({ok:true,adminConfigured:Boolean(process.env.ADMIN_PASSWORD),mallConfigured:Boolean(process.env.CAFE24_MALL_ID),tokenConfigured:Boolean(process.env.CAFE24_ACCESS_TOKEN)})}
