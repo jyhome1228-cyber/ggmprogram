@@ -46,6 +46,9 @@ async function cafeToken(body){
  if(!j.access_token||!j.refresh_token)fail("Cafe24 token response missing access or refresh token");
  return j;
 }
+// Client ID is public OAuth app metadata, not a secret. Publish once for the setup page.
+await mkdir("data",{recursive:true});
+await writeFile("data/client.json",JSON.stringify({client_id:ID,mall:MALL})+"\n");
 let saved=await getSavedToken();
 if(CODE){
  const fresh=await cafeToken({grant_type:"authorization_code",code:CODE,redirect_uri:REDIRECT});
