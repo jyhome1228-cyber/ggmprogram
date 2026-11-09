@@ -114,11 +114,24 @@ exports.cafe24Orders = onRequest({region,secrets,invoker:'public'},withError(asy
  const limit=Math.min(100,Math.max(1,Number(req.query.limit)||20));
  const url=new URL(shopHost()+'/api/v2/admin/orders');
  url.searchParams.set('limit',String(limit));url.searchParams.set('offset',String(offset));
+ const start=String(req.query.start_date||'');
+ const end=String(req.query.end_date||'');
+ if(start||end){
+   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(end))
+     return response(res,400,{error:'Invalid date range'});
+   const days=(Date.parse(end+'T00:00:00Z')-Date.parse(start+'T00:00:00Z'))/86400000;
+   if(!Number.isFinite(days)||days<0||days>89) return response(res,400,{error:'Date range must be 0-89 days'});
+   url.searchParams.set('start_date',start); url.searchParams.set('end_date',end);
+   url.searchParams.set('date_type','order_date');
+ }
  const r=await fetch(url,{headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','X-Cafe24-Api-Version':'2026-09-01'}});
  if(!r.ok) return response(res,502,{error:'Cafe24 order read failed',upstreamStatus:r.status});
  const data=await r.json();
  // Raw order records can contain PII. Never write them to logs or a public collection.
- response(res,200,{orders:data.orders||[],pagination:{limit,offset}});
+ response(res,200,{orders:(data.orders||[]).map(o=>({
+  order_id:o.order_id,order_date:o.order_date,order_status:o.order_status,
+  shipping_status:o.shipping_status,shipped_date:o.shipped_date
+})),pagination:{limit,offset}});
 }));
 
 /** Fetch shipping records for one order; supports partial shipments. Read-only. */
@@ -144,4 +157,34 @@ exports.cafe24Status = onRequest({region,secrets:[],invoker:'public'},withError(
  await verifyAdmin(req);
  const snap=await db.doc('privateIntegrations/cafe24').get();
  response(res,200,{connected:snap.exists && Boolean(snap.get('refresh_token')),mallConfigured:Boolean(mall.value())});
+}));
+
+/**
+ * Shipping completeness check for a small, explicitly selected set of order IDs.
+ * Missing tracking is a REVIEW FLAG, never proof that a parcel was not dispatched.
+ * Returns no buyer names, addresses, phone numbers or payment data.
+ */
+exports.cafe24Audit = onRequest({region,secrets,invoker:'public',timeoutSeconds:120},withError(async(req,res)=>{
+ if(preflight(req,res))return;
+ if(req.method!=='GET')return response(res,405,{error:'method not allowed'});
+ await verifyAdmin(req);
+ const ids=String(req.query.orderIds||'').split(',').map(s=>s.trim()).filter(Boolean);
+ if(ids.length<1||ids.length>15||ids.some(x=>!/^\\d{8}-\\d{7,12}$/.test(x)))
+   return response(res,400,{error:'Provide 1 to 15 valid order IDs'});
+ const token=await accessToken();
+ const results=[];
+ for(const orderId of ids){
+   const url=shopHost()+'/api/v2/admin/orders/'+encodeURIComponent(orderId)+'/shipments?shop_no=1';
+   try{
+     const r=await fetch(url,{headers:{Authorization:'Bearer '+token,'X-Cafe24-Api-Version':'2026-09-01'}});
+     if(!r.ok){results.push({orderId,check:'조회 실패',httpStatus:r.status});continue;}
+     const payload=await r.json();
+     const shipments=Array.isArray(payload.shipments)?payload.shipments:[];
+     const withTracking=shipments.filter(sh=>String(sh.tracking_no||'').trim());
+     results.push({orderId,check:shipments.length===0?'송장 등록 확인 필요':withTracking.length<shipments.length?'일부 송장 미등록':'등록 확인',
+       shipmentCount:shipments.length,trackingCount:withTracking.length,
+       shipmentStatuses:shipments.map(sh=>sh.status)});
+   }catch(err){results.push({orderId,check:'조회 실패'});}
+ }
+ response(res,200,{results,notice:'송장 미등록은 미출고 확정이 아닙니다. 결제/취소/합배송 및 실제 택배 접수 여부를 함께 확인하세요.'});
 }));
