@@ -1,48 +1,46 @@
-# 건강미 배송관리 — Firebase 단일 배포 구조
+# 건강미 카페24 연동 — Firebase 직접 배포
 
-## 무엇을 유지하나
-- 프론트엔드: GitHub Pages (`ggmprogram`)
-- 관리자 로그인: Firebase Authentication (`ggmapi-e15be`)
-- 데이터: 카페24 Admin API 주문/배송 조회
-- 백엔드: Firebase Cloud Functions
-- 쇼핑몰: `ggmspa`
+## 목표
+기존 GitHub Pages 웹사이트 + Firebase Authentication + Firebase Cloud Functions + 카페24 Admin API를 유지합니다.
+GitHub Actions를 통해 Firebase 서버를 배포하던 방식은 제거했습니다.
 
-**Cloudflare, Cloud Shell, 추가 데이터베이스는 사용하지 않습니다.**
+## 최초 1회 배포 (본인 Mac의 터미널)
+아래 절차는 개발자 계정이 Firebase 프로젝트 `ggmapi-e15be`의 배포 권한을 가진 경우에만 성공합니다.
+Google Cloud IAM 서비스 계정 JSON을 직접 사용하지 않습니다.
 
-## 무엇을 바꿨나
-이전 워크플로는 매번 Firebase CLI `functions:secrets:set`을 호출하여
-Service Usage API 사전 권한 검사에서 403 오류가 발생했습니다.
+```bash
+git clone https://github.com/jyhome1228-cyber/ggmprogram.git
+cd ggmprogram
+npm install
+npm install -g firebase-tools
+firebase login
+firebase use ggmapi-e15be
+cd functions && npm install && cd ..
+```
 
-현재 GitHub Actions는 Google Cloud SDK의 Secret Manager 명령으로
-서버 비밀키를 등록한 뒤, `firebase deploy --only functions`만 실행합니다.
-실제 Firebase Functions 배포에도 계정 권한이 필요하며, 이 변경이 IAM
-문제를 전부 해결한다고 보장하지 않습니다.
+서버에만 저장할 카페24 비밀키 등록 (값을 대화나 저장소에 넣지 않기):
 
-## 단 한 번 필요한 보안 설정
-GitHub Repository Secrets:
-- `FIREBASE_SERVICE_ACCOUNT_GGMAPI` — **유효하고 노출되지 않은** 배포 서비스 계정 JSON
-- `CAFE24_CLIENT_ID`
-- `CAFE24_CLIENT_SECRET` — 노출된 키를 재발급한 값
-- `CAFE24_MALL_ID` — `ggmspa`
-- `GGM_ADMIN_UID` — 등록된 Firebase 관리자 UID
+```bash
+firebase functions:secrets:set CAFE24_CLIENT_ID --project ggmapi-e15be
+firebase functions:secrets:set CAFE24_CLIENT_SECRET --project ggmapi-e15be
+```
 
-배포용 서비스 계정에는 Secret Manager의 비밀키 버전 추가·조회 및 Firebase Functions
-배포에 필요한 IAM 권한이 있어야 합니다. 권한은 Google Cloud 프로젝트 소유자가
-관리하며, GitHub 코드를 수정하는 것만으로 부여되지 않습니다.
+배포 시 Firebase CLI가 `CAFE24_MALL_ID`와 `GGM_ADMIN_UID`를 요청하면 각각 쇼핑몰 ID 및 Firebase Authentication의 관리자 UID를 입력합니다. 이미 설정된 런타임 매개변수는 그대로 유지됩니다.
 
-## 실행
-GitHub → Actions → `Deploy Firebase Cafe24 API` → Run workflow (main).
+```bash
+npm run deploy:api
+```
 
-배포 성공 후:
-1. 카페24 개발자센터 App URL: `https://jyhome1228-cyber.github.io/ggmprogram/`
-2. Redirect URI: `https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/cafe24Callback`
-3. 쇼핑몰 운영자 Order 읽기 권한 승인
-4. `https://jyhome1228-cyber.github.io/ggmprogram/manage.html`에서 Firebase 관리자 로그인
-5. 연결 상태 확인 → 카페24 최초 승인 → 실제 주문 조회
+배포가 성공한 뒤 다음 URL을 확인합니다.
 
-배포 성공과 카페24 OAuth 운영자 승인은 **다른 단계**입니다.
+- 서버 상태: `https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/ggmHealth`
+- 카페24 Redirect URI: `https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/cafe24Callback`
+- 관리자: `https://jyhome1228-cyber.github.io/ggmprogram/manage.html`
 
-## 운영 전 주의
-현재는 조회 전용이며 배송누락 검사는 '송장 미등록 의심'으로만 표시합니다.
-실제 출고 누락은 출고업체 발주내역 및 택배사 접수내역과 교차 검증해야 합니다.
-노출된 개인키는 즉시 폐기하고, 비밀키는 채팅이나 공개 GitHub에 입력하지 않습니다.
+관리자 Firebase 로그인 → 카페24 최초 승인 → 주문 조회 순서로 검증합니다.
+
+## 명확한 한계
+Firebase Functions는 서버 제품이므로 실제 배포를 생략할 수는 없습니다. Firebase CLI로 직접 배포하면 GitHub Actions에서 발생했던 별도 서비스 계정 권한 경로를 사용하지 않지만, **로그인 계정에도 배포 권한은 필요**합니다.
+또한 기존 Google 서비스 계정 키는 채팅에 노출됐으므로 폐기되어야 합니다.
+
+현재는 조회 전용으로, 송장 등록이나 배송 상태 변경은 지원하지 않습니다.
