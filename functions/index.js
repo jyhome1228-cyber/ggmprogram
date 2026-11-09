@@ -31,8 +31,12 @@ function redirectUrl(req){ // Stable URL for registering in Cafe24 Developers
  return 'https://'+region+'-'+process.env.GCLOUD_PROJECT+'.cloudfunctions.net/cafe24Callback';
 }
 function authForm(grantType,other={}){
- const p=new URLSearchParams({grant_type:grantType,...other});
- return p;
+ return new URLSearchParams({grant_type:grantType,...other});
+}
+function accessTokenExpiry(token){
+ // Cafe24 supplies expires_at (ISO 8601), not necessarily expires_in.
+ const ms=Date.parse(String(token.expires_at||''));
+ return Number.isFinite(ms) ? ms-120000 : Date.now()+Math.max(60,Number(token.expires_in||7200)-120)*1000;
 }
 async function tokenRequest(form){
  const basic=Buffer.from(cafeId.value()+':'+cafeSecret.value()).toString('base64');
@@ -87,7 +91,7 @@ exports.cafe24Callback = onRequest({region,secrets,invoker:'public'},withError(a
  await db.doc('privateIntegrations/cafe24').set({
    access_token:token.access_token,refresh_token:token.refresh_token,
    expires_at:token.expires_at||null,
-   expiresAtMs:Date.now()+Math.max(60,Number(token.expires_in||7200)-120)*1000,
+   expiresAtMs:accessTokenExpiry(token),
    refreshedAt:admin.firestore.FieldValue.serverTimestamp(),
  },{merge:true});
  res.status(200).set('Cache-Control','no-store').type('html').send('<!doctype html><meta charset="utf-8"><title>연결 성공</title><p>카페24 연결이 완료되었습니다. 이 창을 닫고 배송관리 화면으로 돌아가세요.</p>');
@@ -101,7 +105,7 @@ async function accessToken(){
  if(!fresh.access_token||!fresh.refresh_token)throw Error('Token refresh failed');
  await ref.set({access_token:fresh.access_token,refresh_token:fresh.refresh_token,
  expires_at:fresh.expires_at||null,
- expiresAtMs:Date.now()+Math.max(60,Number(fresh.expires_in||7200)-120)*1000,
+ expiresAtMs:accessTokenExpiry(fresh),
  refreshedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
  return fresh.access_token;
 }
@@ -188,3 +192,10 @@ exports.cafe24Audit = onRequest({region,secrets,invoker:'public',timeoutSeconds:
  }
  response(res,200,{results,notice:'송장 미등록은 미출고 확정이 아닙니다. 결제/취소/합배송 및 실제 택배 접수 여부를 함께 확인하세요.'});
 }));
+
+// Public, data-free health check for diagnostics; never returns keys or customer information.
+exports.ggmHealth = onRequest({region,invoker:'public'},(req,res)=>{
+ if(req.method!=='GET')return response(res,405,{error:'Method not allowed'});
+ res.set('Access-Control-Allow-Origin',origin);
+ response(res,200,{ok:true,service:'ggm-shipping-api'});
+});
