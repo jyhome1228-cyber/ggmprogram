@@ -22,6 +22,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Validate Functions source syntax
+        run: node --check functions/index.js
       - name: Check required configuration (no values printed)
         env:
           GCP_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
