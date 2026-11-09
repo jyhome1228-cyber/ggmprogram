@@ -47,6 +47,20 @@ function draw(){
  el("title").textContent=labels[state.view][0];el("breadcrumb").textContent=labels[state.view][0];el("desc").textContent=labels[state.view][1];
  el("export").disabled=!s||state.view==="shipping";
  if(!s){el("body").innerHTML='<section class="panel"><div class="empty">최근 집계 데이터가 없습니다. GitHub Actions 동기화 결과를 확인해주세요.</div></section>';return}
+ if(s.schema<2||!Array.isArray(s.daily_products)){
+  var legacy=(s.products||[]).filter(x=>(x.name+" "+x.option).toLowerCase().includes(state.search.toLowerCase()));
+  el("kOrders").textContent=state.search?"—":number(s.order_count)+"건";
+  el("kQty").textContent=number(sum(legacy,"quantity"))+"개";
+  el("kProducts").textContent=number(legacy.length)+"종";
+  el("kStatus").textContent="일별 갱신 대기";
+  el("kPeriod").textContent=s.period.start_date+" ~ "+s.period.end_date;
+  el("asof").textContent="기존 집계 "+new Date(s.updated_at).toLocaleString("ko-KR");
+  el("body").innerHTML='<section class="panel"><h2>제품별 주문 현황</h2><p class="tiny">기존 7일 집계입니다. 새 API 수집 완료 후 일자별 필터가 활성화됩니다.</p>'+productTable(legacy)+'</section>';
+  el("export").disabled=!legacy.length;
+  el("notice").className="notice warn";
+  el("notice").textContent="이전 데이터 표시 중 · 새 일자별 집계가 아직 생성되지 않았습니다. 기존 판매수량은 그대로 확인할 수 있습니다.";
+  return;
+ }
  var d=days(),p=products(),r=ranged();
  // For a product search, summing per-product order counts can double-count multi-product orders.
  // Consequently display exact distinct daily order totals only when no product search applies.
