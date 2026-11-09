@@ -1,0 +1,71 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>건강미 | 실주문 조회</title><style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+*{box-sizing:border-box}body{font-family:Pretendard,system-ui,sans-serif;background:#f5f7f8;color:#243942;margin:0}header{height:70px;background:#243e49;color:white;display:flex;align-items:center;justify-content:space-between;padding:0 4vw}header strong{font-size:19px}header small{font-size:11px;color:#bbced5}main{max-width:1450px;margin:35px auto;padding:0 22px}h1{font-size:26px;margin:0 0 8px}p{color:#7b8c94;line-height:1.65}button,input,select{font:inherit}button{cursor:pointer;border:1px solid #cbd6da;background:white;border-radius:8px;padding:11px 16px;color:#32515d}button.primary{background:#557781;border-color:#557781;color:white}button:disabled{opacity:.5;cursor:not-allowed}input{border:1px solid #d9e2e5;padding:12px;border-radius:8px;min-width:0}section{background:white;border:1px solid #e4eaed;border-radius:12px;padding:23px;margin:18px 0}.row{display:flex;gap:11px;align-items:center;flex-wrap:wrap}.space{justify-content:space-between}.muted{font-size:12px;color:#82959e}.note{padding:13px 16px;background:#fff8e9;border:1px solid #f0e1bf;border-radius:8px;color:#876a3e;font-size:12px;line-height:1.6}.ok{color:#338464}.bad{color:#ba694c}table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}th{text-align:left;background:#f5f8f9;padding:14px;color:#79909a}td{padding:14px;border-bottom:1px solid #ecf0f2}div.scroll{overflow-x:auto}.pill{border-radius:20px;padding:5px 9px;background:#eaf0f2}.hide{display:none!important}.bar{margin:18px 0}.small-btn{padding:6px 9px;font-size:11px}#message{white-space:pre-wrap}#shipments{white-space:pre-wrap;padding:12px;background:#f2f6f7;border-radius:8px;font-size:12px;line-height:1.6}footer{text-align:center;padding:25px;color:#9cabb2;font-size:11px}@media(max-width:700px){header{padding:0 15px}main{padding:0 12px}section{padding:16px}h1{font-size:22px}}
+</style></head><body><header><div><strong>GEONGANMI</strong> <small>SHIPPING MANAGER</small></div><a href="./" style="color:#c0d3dc;font-size:12px">대시보드</a></header><main>
+<div class="row space"><div><h1>카페24 실주문 · 배송 조회</h1><p>관리자 인증 후 카페24 주문 및 주문별 송장정보를 조회합니다.</p></div><span class="pill" id="connection">미연결</span></div>
+<div class="note">이 화면은 실제 주문 정보를 조회할 수 있으므로 관리자 전용입니다. 주문 변경과 송장 등록은 지원하지 않습니다. 조회 결과는 브라우저에만 표시하며 Firestore에 복사하지 않습니다.</div>
+<section id="login"><h2>관리자 로그인</h2><div class="row"><input id="email" type="email" autocomplete="username" placeholder="Firebase 관리자 이메일"><input id="password" type="password" autocomplete="current-password" placeholder="비밀번호"><button class="primary" id="signin">로그인</button></div><p class="muted">Firebase Authentication의 등록된 관리자 UID와 서버 허용 UID가 일치해야 조회됩니다.</p></section>
+<section id="work" class="hide"><div class="row space"><div><strong id="username">관리자</strong><p class="muted" style="margin:5px 0">개별 배송 조회는 해당 주문의 배송번호와 송장정보를 확인합니다.</p></div><button id="signout">로그아웃</button></div>
+<div class="row bar"><button id="connect" class="primary">카페24 최초 승인</button><button id="check">연결 상태 확인</button><button id="load" class="primary">주문 새로고침</button><button id="next">다음 20건</button></div>
+<div class="scroll"><table><thead><tr><th>주문번호</th><th>주문일시</th><th>주문상태</th><th>배송상태</th><th>송장 상세</th></tr></thead><tbody id="orders"><tr><td colspan="5" class="muted">주문을 불러오려면 새로고침을 누르세요.</td></tr></tbody></table></div><p class="muted" id="pagination"></p>
+<div id="shipPanel" class="hide"><h3>선택한 주문 배송정보</h3><div id="shipments"></div></div></section>
+<section><strong>연결 메시지</strong><p id="message">Firebase Functions 배포 및 카페24 OAuth 승인이 완료된 후 사용할 수 있습니다.</p></section>
+</main><footer>GGM SHIPPING MANAGER · 관리자 전용 · 읽기 전용</footer>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js';
+const config={apiKey:'AIzaSyCGAcOL7VrS0sLbn6WUxbgeDInTr9N9yA4',authDomain:'ggmapi-e15be.firebaseapp.com',projectId:'ggmapi-e15be',appId:'1:683663876311:web:f995832f3cd8d1a1b95092'};
+const app=initializeApp(config),auth=getAuth(app);
+const BASE='https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/';
+const $=id=>document.getElementById(id);let offset=0;
+function message(s,isError=false){$('message').textContent=s;$('message').className=isError?'bad':''}
+function displayValue(v){return String(v??'-')}
+async function api(functionName,params={}){
+ const user=auth.currentUser;if(!user)throw Error('먼저 로그인해야 합니다.');
+ const token=await user.getIdToken();
+ const url=new URL(BASE+functionName);
+ Object.entries(params).forEach(([key,val])=>url.searchParams.set(key,String(val)));
+ const response=await fetch(url,{headers:{Authorization:'Bearer '+token}});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error?data.error+' (HTTP '+response.status+')':'서버 오류 '+response.status);
+ return data;
+}
+onAuthStateChanged(auth,user=>{$('login').classList.toggle('hide',!!user);$('work').classList.toggle('hide',!user);$('username').textContent=user?.email||'관리자';$('connection').textContent=user?'Firebase 로그인됨 · 카페24 미확인':'로그인 필요';});
+$('signin').onclick=async()=>{try{await signInWithEmailAndPassword(auth,$('email').value.trim(),$('password').value);$('password').value='';message('Firebase 로그인 성공. 카페24 연결 상태를 확인하세요.')}catch(e){message('로그인 실패: '+e.code,true)}};
+$('signout').onclick=()=>signOut(auth);
+$('check').onclick=async()=>{try{const s=await api('cafe24Status');$('connection').textContent=s.connected?'카페24 연결됨':'카페24 승인 전';message(s.connected?'카페24 OAuth 인증이 저장되어 있습니다. 주문 조회를 시작하세요.':'카페24 최초 승인이 필요합니다.')}catch(e){message('연결 상태 확인 실패: '+e.message,true)}};
+$('connect').onclick=async()=>{try{const data=await api('cafe24Connect');if(!data.authorizationUrl)throw Error('인증 URL을 받지 못했습니다');window.location.href=data.authorizationUrl}catch(e){message('카페24 승인 시작 실패: '+e.message,true)}};
+$('load').onclick=()=>loadOrders(false);$('next').onclick=()=>loadOrders(true);
+function cell(text){const td=document.createElement('td');td.textContent=displayValue(text);return td}
+async function loadOrders(next){
+ if(!next)offset=0;
+ try{
+ const data=await api('cafe24Orders',{offset,limit:20});
+ const rows=Array.isArray(data.orders)?data.orders:[];
+ const tbody=$('orders');tbody.replaceChildren();
+ for(const order of rows){
+  const tr=document.createElement('tr');
+  const id=String(order.order_id||'');
+  tr.append(cell(id),cell(order.order_date),cell(order.order_status),cell(order.shipping_status));
+  const td=document.createElement('td'),btn=document.createElement('button');btn.className='small-btn';btn.textContent='송장 조회';btn.onclick=()=>loadShipments(id);td.append(btn);tr.append(td);tbody.append(tr);
+ }
+ if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.textContent='조회된 주문이 없습니다. 검색기간 또는 쇼핑몰 API 설정을 확인하세요.';tr.append(td);tbody.append(tr)}
+ $('pagination').textContent='현재 '+rows.length+'건 표시 · 시작 위치 '+offset;
+ if(rows.length)offset+=rows.length;
+ message('카페24 주문 조회가 완료되었습니다. ('+rows.length+'건)');
+ }catch(e){message('주문 조회 오류: '+e.message,true)}
+}
+async function loadShipments(id){
+ $('shipPanel').classList.remove('hide');$('shipments').textContent='배송정보 조회 중...';
+ try{
+ const data=await api('cafe24Shipments',{orderId:id});const shipments=data.shipments||[];
+ $('shipments').textContent=shipments.length?shipments.map((s,i)=>[
+ '#'+(i+1)+' 배송번호: '+displayValue(s.shipping_code),
+ '상태: '+displayValue(s.status),
+ '택배사 코드: '+displayValue(s.shipping_company_code),
+ '운송장번호: '+displayValue(s.tracking_no),
+ '품목 수: '+(s.items?.length||0)
+ ].join('\n')).join('\n\n'):'등록된 송장정보가 없습니다. 부분 배송·주문상태를 확인하세요.';
+ }catch(e){$('shipments').textContent='조회 실패: '+e.message}
+}
+</script></body></html>
