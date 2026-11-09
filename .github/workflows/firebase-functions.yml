@@ -2,12 +2,6 @@ name: Deploy Firebase Cafe24 API
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'functions/**'
-      - 'firebase.json'
-      - '.github/workflows/firebase-functions.yml'
 
 permissions:
   contents: read
