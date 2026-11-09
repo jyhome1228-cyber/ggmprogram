@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check required configuration
+      - name: Check required configuration (no values printed)
         env:
           GCP_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
           CAFE_ID: ${{ secrets.CAFE24_CLIENT_ID }}
@@ -26,7 +26,7 @@ jobs:
         run: |
           for name in GCP_JSON CAFE_ID CAFE_SECRET CAFE_MALL ADMIN_UID; do
             if [ -z "${!name}" ]; then
-              echo "::error::Required secret is missing: $name"
+              echo "::error::GitHub repository secret for $name is empty or unavailable. Check Settings > Secrets and variables > Actions > Repository secrets; use a NEW Run workflow after saving."
               exit 1
             fi
           done
