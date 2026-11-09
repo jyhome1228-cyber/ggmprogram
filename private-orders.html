@@ -1,0 +1,62 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#667f89"><title>건강미 | 비공개 주문·배송 조회</title><style>
+:root{--brand:#667f89;--ink:#253840;--muted:#80929b;--bg:#f5f7f8;--line:#e3e9ec}*{box-sizing:border-box}body{font:13px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);margin:0}button,input,select{font:inherit}a{color:var(--brand)}.wrap{max-width:1530px;margin:auto;padding:29px}.heading{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:14px}.brand img{width:48px;height:66px;object-fit:contain}.eyebrow{color:var(--brand);font-size:11px;font-weight:800;letter-spacing:1.4px}h1{font-size:27px;margin:1px 0}p{color:var(--muted);margin:6px 0}.panel,.stat{background:white;border-radius:14px;border:1px solid var(--line)}.panel{padding:22px;margin-top:19px}.notice{background:#eaf1f3;border-radius:10px;padding:14px 17px;margin:18px 0;color:#55717d}.upload{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.btn{background:white;border:1px solid #dce5e8;border-radius:9px;padding:10px 14px;min-height:40px;cursor:pointer;color:#516c78;font-weight:700}.btn.primary{background:var(--brand);color:white;border-color:var(--brand)}.btn:disabled{opacity:.4;cursor:not-allowed}.input{padding:10px 12px;border:1px solid #dce5e8;border-radius:9px;background:white;min-height:40px;max-width:100%}.search{flex:1;min-width:200px}.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:20px 0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.stat{padding:20px}.stat span{color:#8e9ba1;font-size:12px}.stat b{display:block;font-size:25px;margin-top:9px}h2{font-size:17px;margin:0 0 13px}.tablewrap{overflow:auto;max-height:63vh}table{border-collapse:collapse;width:100%;min-width:1200px}td,th{border-bottom:1px solid #eef1f2;padding:13px 11px;white-space:nowrap;text-align:left;font-size:12px}th{background:#f8fafb;color:#8898a0;position:sticky;top:0}td{color:#485d67}.badge{background:#edf3f4;border-radius:5px;padding:4px 8px}.small{font-size:11px;color:#91a0a7}.empty{text-align:center;padding:60px 15px;color:#94a3a9}.footer{margin-top:18px;font-size:11px;color:#899aa1}.hidden{display:none!important}@media(max-width:800px){.wrap{padding:16px}.stats{grid-template-columns:repeat(2,1fr)}.panel{padding:14px}h1{font-size:22px}}
+</style></head><body><div class="wrap"><div class="heading"><div class="brand"><img src="assets/ggm-logo.svg" alt="건강미 공식 로고"><div><div class="eyebrow">GGM · LOCAL ORDER DESK</div><h1>주문자 · 수령인 · 배송지 확인</h1><p>카페24 CSV 파일을 이 브라우저에서만 조회합니다.</p></div></div><a class="btn" href="./">← 제품별 주문현황</a></div>
+<div class="notice"><b>개인정보 보호:</b> 파일 내용은 이 브라우저 메모리에서만 처리하며 서버나 GitHub에 전송하지 않습니다. 브라우저 창을 닫거나 새로고침하면 조회 데이터가 사라집니다. 공용 PC에서는 사용하지 마세요.</div>
+<div class="panel"><h2>카페24 주문·배송 CSV 가져오기</h2><div class="upload"><input id="file" type="file" accept=".csv,text/csv" aria-label="CSV 업로드"><select id="encoding" class="input" aria-label="CSV 인코딩"><option value="utf-8">UTF-8</option><option value="euc-kr">엑셀 한글 깨짐 시 EUC-KR</option></select><button class="btn" id="clear">목록 비우기</button></div><p class="small">카페24에서 주문내역을 CSV로 내려받아 넣어주세요. 원본 헤더가 '주문번호', '주문자명', '수령인', '주소', '상품명', '송장번호' 등으로 되어 있으면 자동 인식합니다.</p><p id="message" class="small"></p></div>
+<div class="stats"><div class="stat"><span>주문건수</span><b id="orders">—</b></div><div class="stat"><span>주문 품목행</span><b id="items">—</b></div><div class="stat"><span>송장 미등록행</span><b id="missing">—</b></div><div class="stat"><span>조회 행</span><b id="matches">—</b></div></div>
+<div class="panel"><div class="toolbar"><input id="search" class="input search" placeholder="주문번호 · 고객명 · 제품명 · 송장번호 검색"><select class="input" id="delivery"><option value="all">전체 배송상태</option><option value="missing">송장 미등록</option><option value="present">송장 등록</option></select><input class="input" type="date" id="from" aria-label="시작일"><input class="input" type="date" id="to" aria-label="종료일"><button id="export" class="btn primary" disabled>↓ 현재 목록 CSV</button></div><div class="tablewrap"><table><thead><tr><th>주문일</th><th>주문번호</th><th>주문자</th><th>수령인</th><th>연락처</th><th>배송지</th><th>제품명</th><th>옵션</th><th>수량</th><th>배송상태</th><th>송장번호</th></tr></thead><tbody id="rows"><tr><td colspan="11" class="empty">카페24 주문 CSV를 선택하면 목록이 표시됩니다.</td></tr></tbody></table></div><div class="footer">송장 미등록 = 배송누락 확정이 아닙니다. 배송 상태 및 취소 여부를 확인하세요. 잘못된 칼럼 매핑은 실제 카페24 CSV 헤더에 맞춰 조정해야 합니다.</div></div></div>
+<script>
+(function(){"use strict";
+let source=[],shown=[];
+const q=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function csvParse(input){
+ let rows=[],row=[],field="",quoted=false;
+ for(let i=0;i<input.length;i++){const c=input[i];
+  if(quoted){if(c==='"'&&input[i+1]==='"'){field+='"';i++}else if(c==='"'){quoted=false}else field+=c}
+  else if(c==='"'){quoted=true}
+  else if(c===','){row.push(field);field=""}
+  else if(c==='\n'||c==='\r'){if(c==='\r'&&input[i+1]==='\n')i++;row.push(field);field="";if(row.some(v=>v.trim()))rows.push(row);row=[]}
+  else field+=c;
+ }
+ if(field||row.length){row.push(field);rows.push(row)}
+ return rows;
+}
+const synonyms={
+ date:["주문일","주문일시","주문일자","주문날짜","order_date"],
+ id:["주문번호","주문 번호","order_id"],
+ buyer:["주문자","주문자명","구매자명","주문자 이름","buyer_name"],
+ receiver:["수령인","수령인명","받는분","받는 분","받는사람","수취인","수취인명","receiver_name"],
+ phone:["수령인휴대전화","수령인 휴대전화","수령인연락처","수령인 연락처","받는분휴대전화","받는분 휴대폰","휴대전화","휴대폰","연락처","receiver_phone"],
+ address:["수령인주소","수령인 주소","배송지","배송주소","배송지주소","받는분주소","수취인주소","address1"],
+ address2:["상세주소","배송지상세주소","수령인상세주소","address2"],
+ product:["상품명","제품명","주문상품명","product_name"],
+ option:["옵션","옵션명","옵션정보","상품옵션","option_value"],
+ qty:["수량","주문수량","상품수량","구매수량","quantity"],
+ delivery:["배송상태","주문상태","발송상태","shipping_status","order_status"],
+ tracking:["운송장번호","송장번호","운송장 번호","택배송장번호","tracking_no"],
+ carrier:["택배사","배송업체","shipping_company"]
+};
+function normalizeHeader(s){return String(s||"").toLowerCase().replace(/\s|[\[\]():_\-]/g,"")}
+function fieldMap(headers){const norm=headers.map(normalizeHeader),out={};for(const [key,list] of Object.entries(synonyms)){const i=norm.findIndex(h=>list.some(n=>normalizeHeader(n)===h));out[key]=i}return out}
+function cell(row,i){return i<0?"":String(row[i]||"").trim()}
+function mapRows(data){const headers=data[0]||[],m=fieldMap(headers);if(m.id<0&&m.product<0)throw Error("주문번호 또는 상품명 열을 찾지 못했습니다. CSV 헤더를 확인해주세요.");
+ return{headers,m,rows:data.slice(1).filter(r=>r.some(x=>String(x||"").trim())).map(r=>Object.fromEntries(Object.keys(synonyms).map(k=>[k,cell(r,m[k])])))}}
+function render(){
+ const search=q("search").value.trim().toLowerCase(),kind=q("delivery").value,from=q("from").value,to=q("to").value;
+ shown=source.filter(r=>(!search||[r.id,r.buyer,r.receiver,r.product,r.option,r.tracking].join(" ").toLowerCase().includes(search))&&(!from||!r.date||r.date.slice(0,10)>=from)&&(!to||!r.date||r.date.slice(0,10)<=to)&&(kind==="all"||(kind==="missing"?!r.tracking:!!r.tracking)));
+ q("orders").textContent=source.length?new Set(source.map(r=>r.id).filter(Boolean)).size.toLocaleString()+"건":"—";
+ q("items").textContent=source.length?source.length.toLocaleString()+"행":"—";
+ q("missing").textContent=source.length?source.filter(r=>!r.tracking).length.toLocaleString()+"행":"—";
+ q("matches").textContent=source.length?shown.length.toLocaleString()+"행":"—";
+ q("export").disabled=!shown.length;
+ q("rows").innerHTML=shown.length?shown.slice(0,2000).map(r=>'<tr><td>'+esc(r.date)+'</td><td>'+esc(r.id)+'</td><td>'+esc(r.buyer)+'</td><td>'+esc(r.receiver)+'</td><td>'+esc(r.phone)+'</td><td>'+esc([r.address,r.address2].filter(Boolean).join(" "))+'</td><td>'+esc(r.product)+'</td><td>'+esc(r.option)+'</td><td>'+esc(r.qty)+'</td><td><span class="badge">'+esc(r.delivery||"미확인")+'</span></td><td>'+esc(r.tracking||"미등록")+'</td></tr>').join(""):'<tr><td colspan="11" class="empty">조회된 주문이 없습니다.</td></tr>';
+ if(shown.length>2000)q("message").textContent="화면에는 첫 2,000행만 표시됩니다. CSV 다운로드에는 전체 필터 결과가 포함됩니다.";
+}
+q("file").addEventListener("change",async e=>{const f=e.target.files[0];if(!f)return;try{if(f.size>30*1024*1024)throw Error("30MB 이하 CSV만 지원합니다.");const bytes=await f.arrayBuffer();const text=new TextDecoder(q("encoding").value).decode(bytes).replace(/^\uFEFF/,"");const result=mapRows(csvParse(text));source=result.rows;q("message").textContent="파일 읽기 완료 · "+source.length+"행 · 인식된 열: "+Object.entries(result.m).filter(([k,v])=>v>=0).map(([k])=>k).join(", ");render()}catch(err){source=[];q("message").textContent="파일을 읽지 못했습니다: "+err.message;render()}});
+["search","delivery","from","to"].forEach(k=>q(k).addEventListener("input",render));
+q("clear").onclick=()=>{source=[];shown=[];q("file").value="";q("message").textContent="조회 데이터를 비웠습니다.";render()};
+q("export").onclick=()=>{if(!shown.length)return;const cols=[["주문일","date"],["주문번호","id"],["주문자","buyer"],["수령인","receiver"],["연락처","phone"],["배송지","address"],["상세주소","address2"],["상품명","product"],["옵션","option"],["수량","qty"],["배송상태","delivery"],["송장번호","tracking"]];const cell=s=>{let x=String(s??"");if(/^[=+@\-\t\r]/.test(x))x="'"+x;return '"'+x.replace(/"/g,'""')+'"'};const csv="\uFEFF"+[cols.map(x=>x[0]),...shown.map(row=>cols.map(([,k])=>row[k]))].map(row=>row.map(cell).join(",")).join("\r\n");const u=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"})),a=document.createElement("a");a.href=u;a.download="건강미_주문배송조회.csv";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+})();
+</script></body></html>
