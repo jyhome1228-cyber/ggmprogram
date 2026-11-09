@@ -1,3 +1,21 @@
+## GitHub에서 직접 배포하는 방법 (Mac 터미널 불필요)
+
+`.github/workflows/firebase-functions.yml`을 추가했습니다. GitHub Actions의 `Deploy Firebase Cafe24 API` 워크플로를 수동 실행할 수 있습니다.
+
+**계정 소유자가 처음 한 번만 설정할 것**
+
+GitHub `Settings > Secrets and variables > Actions`의 Repository secrets에 다음 항목을 등록합니다.
+
+- `FIREBASE_SERVICE_ACCOUNT_GGMAPI`: `ggmapi-e15be` 배포에 필요한 최소 권한을 가진 Google Cloud 서비스 계정 JSON 전체. GitHub에 코드로 커밋하거나 채팅으로 보내지 마세요.
+- `CAFE24_CLIENT_ID`: 카페24 앱 Client ID.
+- `CAFE24_CLIENT_SECRET`: **재발급한** Client Secret.
+- `CAFE24_MALL_ID`: 쇼핑몰 ID.
+- `GGM_ADMIN_UID`: Firebase Authentication에 등록된 관리자 UID.
+
+Google Cloud의 서비스 계정에는 Cloud Functions/Run 배포, 빌드, 서비스 계정 사용, Firebase/Secret Manager 관련 **필요한 최소 권한**을 프로젝트 보안 정책에 맞춰 부여해야 합니다.
+
+이후 GitHub `Actions > Deploy Firebase Cafe24 API > Run workflow`를 실행하면 secrets provisioning 및 Functions 배포를 시도합니다. 필요한 Cloud APIs나 IAM 권한이 빠졌다면 Actions 로그에 오류가 출력되므로 그 오류를 기준으로 보완해야 합니다. **코드가 추가됐다고 실제 서버가 자동 배포된 것은 아닙니다.**
+
 # 건강미 실주문 / 배송 조회 연동 체크리스트
 
 프로젝트: Firebase `ggmapi-e15be`, GitHub `jyhome1228-cyber/ggmprogram`.
