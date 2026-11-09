@@ -40,20 +40,27 @@ jobs:
           export_environment_variables: true
       - name: Setup Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
-      - name: Diagnose service-account API permissions
+      - name: Diagnose deployment identity and retry Service Usage check
         env:
           DEPLOY_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
         run: |
           python3 - <<'PY'
           import json, os
-          account = json.loads(os.environ["DEPLOY_JSON"])["client_email"]
-          print("Deployment service account: " + account)
-          print("Project: ggmapi-e15be")
+          info=json.loads(os.environ["DEPLOY_JSON"])
+          print("Firebase deployment service account: "+info["client_email"])
+          print("Firebase target project: ggmapi-e15be")
           PY
-          if ! gcloud services describe secretmanager.googleapis.com --project=ggmapi-e15be --format='value(state)'; then
-            echo "::error::The service account printed above cannot read the Secret Manager API service state. Grant roles/serviceusage.serviceUsageViewer on project ggmapi-e15be to THAT exact service account, not a different Firebase agent, and verify its key matches the GitHub secret. Secret Manager Admin alone does not grant serviceusage.services.get."
-            exit 1
-          fi
+          gcloud auth list --filter="status:ACTIVE" --format="value(account)"
+          for attempt in 1 2 3 4 5; do
+            if gcloud services describe secretmanager.googleapis.com --project=ggmapi-e15be --format="value(state)"; then
+              echo "Service Usage access verified."
+              exit 0
+            fi
+            echo "::warning::Service Usage permissions not effective, attempt $attempt/5"
+            if [ "$attempt" -lt 5 ]; then sleep 20; fi
+          done
+          echo "::error::IAM access still denied. Compare the exact 'Firebase deployment service account' above with the principal edited in Google Cloud IAM (project ggmapi-e15be). Correct role: roles/serviceusage.serviceUsageViewer. The problem is not the Cafe24 client secret."
+          exit 1
       - name: Install Firebase CLI and dependencies
         run: |
           npm install --global firebase-tools
