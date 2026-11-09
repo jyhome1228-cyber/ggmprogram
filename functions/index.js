@@ -117,7 +117,7 @@ exports.cafe24Orders = onRequest({region,secrets,invoker:'public'},withError(asy
  const start=String(req.query.start_date||'');
  const end=String(req.query.end_date||'');
  if(start||end){
-   if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(start)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(end))
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end))
      return response(res,400,{error:'Invalid date range'});
    const days=(Date.parse(end+'T00:00:00Z')-Date.parse(start+'T00:00:00Z'))/86400000;
    if(!Number.isFinite(days)||days<0||days>89) return response(res,400,{error:'Date range must be 0-89 days'});
@@ -169,7 +169,7 @@ exports.cafe24Audit = onRequest({region,secrets,invoker:'public',timeoutSeconds:
  if(req.method!=='GET')return response(res,405,{error:'method not allowed'});
  await verifyAdmin(req);
  const ids=String(req.query.orderIds||'').split(',').map(s=>s.trim()).filter(Boolean);
- if(ids.length<1||ids.length>15||ids.some(x=>!/^\\d{8}-\\d{7,12}$/.test(x)))
+ if(ids.length<1||ids.length>15||ids.some(x=>!/^\d{8}-\d{7,12}$/.test(x)))
    return response(res,400,{error:'Provide 1 to 15 valid order IDs'});
  const token=await accessToken();
  const results=[];
