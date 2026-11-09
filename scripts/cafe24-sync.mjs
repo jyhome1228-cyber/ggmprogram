@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 const PROJECT="ggmapi-e15be";
 const MALL=process.env.CAFE24_MALL_ID||"ggmspa";
@@ -15,38 +15,28 @@ const dateOnly=d=>d.toISOString().slice(0,10);
 function fail(message){throw new Error(message)}
 if(!ID||!SECRET||!SA_TEXT)fail("Required existing GitHub Secrets missing. Need CAFE24_CLIENT_ID, CAFE24_CLIENT_SECRET, FIREBASE_SERVICE_ACCOUNT_GGMAPI");
 if(!/^[a-zA-Z0-9_-]+$/.test(MALL))fail("Invalid Mall ID");
+// No Firebase runtime: the existing GitHub Secret is used only as private encryption material.
 let service;
-try{service=JSON.parse(SA_TEXT)}catch{fail("Firebase service account is not valid JSON")}
-const b64url=s=>Buffer.from(s).toString("base64url");
-async function googleToken(){
- const now=Math.floor(Date.now()/1000);
- const header=b64url(JSON.stringify({alg:"RS256",typ:"JWT"}));
- const payload=b64url(JSON.stringify({iss:service.client_email,scope:"https://www.googleapis.com/auth/cloud-platform",aud:"https://oauth2.googleapis.com/token",iat:now,exp:now+3600}));
- const signingInput=header+"."+payload;
- const signer=createSign("RSA-SHA256");signer.update(signingInput);signer.end();
- const assertion=signingInput+"."+signer.sign(service.private_key).toString("base64url");
- const r=await fetch("https://oauth2.googleapis.com/token",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({grant_type:"urn:ietf:params:oauth:grant-type:jwt-bearer",assertion})});
- const j=await r.json();if(!r.ok)fail("Google service account auth failed (HTTP "+r.status+"): "+JSON.stringify(j.error||"unknown"));
- return j.access_token;
-}
-const gt=await googleToken();
-const google=async(path,method="GET",body)=>{const r=await fetch("https://secretmanager.googleapis.com/v1/"+path,{method,headers:{"Authorization":"Bearer "+gt,"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));return {ok:r.ok,status:r.status,data:j}};
-const secretPath="projects/"+PROJECT+"/secrets/"+SECRET_NAME;
+try { service=JSON.parse(SA_TEXT); } catch { fail("Existing encryption secret is not valid JSON"); }
+if(!service.private_key)fail("Encryption key material missing");
+const cipherKey=createHash("sha256").update(SECRET+"|"+service.private_key).digest();
 async function getSavedToken(){
- const r=await google(secretPath+"/versions/latest:access");
- if(r.status===404)return null;
- if(!r.ok)fail("Cannot read saved OAuth token from Secret Manager (HTTP "+r.status+")");
- return JSON.parse(Buffer.from(r.data.payload.data,"base64").toString("utf8"));
+ let entry;
+ try{entry=JSON.parse(await readFile("data/oauth-token.enc","utf8"))}
+ catch(e){if(e.code==="ENOENT")return null;fail("Encrypted token file missing or invalid")}
+ try{
+  const iv=Buffer.from(entry.iv,"base64"),tag=Buffer.from(entry.tag,"base64");
+  const decipher=createDecipheriv("aes-256-gcm",cipherKey,iv);
+  decipher.setAuthTag(tag);
+  const plain=Buffer.concat([decipher.update(Buffer.from(entry.data,"base64")),decipher.final()]).toString("utf8");
+  return JSON.parse(plain);
+ }catch{fail("Cannot decrypt saved OAuth token. Check unchanged GitHub Secrets")}
 }
 async function saveToken(payload){
- const check=await google(secretPath);
- if(check.status===404){
-  const create=await google("projects/"+PROJECT+"/secrets?secretId="+SECRET_NAME,"POST",{replication:{automatic:{}}});
-  if(!create.ok)fail("Cannot initialize OAuth token vault (HTTP "+create.status+")");
- }else if(!check.ok)fail("Cannot access OAuth token vault (HTTP "+check.status+")");
- const content=Buffer.from(JSON.stringify(payload)).toString("base64");
- const out=await google(secretPath+":addVersion","POST",{payload:{data:content}});
- if(!out.ok)fail("Cannot save OAuth refresh token (HTTP "+out.status+")");
+ const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",cipherKey,iv);
+ const encrypted=Buffer.concat([cipher.update(JSON.stringify(payload),"utf8"),cipher.final()]);
+ await mkdir("data",{recursive:true});
+ await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\\n");
 }
 async function cafeToken(body){
  const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
