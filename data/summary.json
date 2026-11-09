@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "source": "Cafe24 Admin API",
+  "updated_at": "2026-11-09T08:24:59.565Z",
+  "period": {
+    "start_date": "2026-11-03",
+    "end_date": "2026-11-09"
+  },
+  "order_count": 84,
+  "order_item_rows": 131,
+  "total_quantity": 142,
+  "products": [
+    {
+      "name": "[건강미 공구특가]  노탈리 피부 진정 케어 4종",
+      "option": "구성=[1+1] 노탈리 할로 겔 폼 클렌저 500ml",
+      "product_no": "25",
+      "orders": 32,
+      "quantity": 37
+    },
+    {
+      "name": "[건강미 공구특가]  노탈리 피부 진정 케어 4종",
+      "option": "구성=[1+1] 노탈리 타미텐 토너 500ml",
+      "product_no": "25",
+      "orders": 30,
+      "quantity": 34
+    },
+    {
+      "name": "[건강미 공구특가] 페이스푸드 식물성 세럼 특별 구성 4종",
+      "option": "구성=레귤러 세럼 50ml 2개",
+      "product_no": "24",
+      "orders": 21,
+      "quantity": 21
+    },
+    {
+      "name": "[건강미 공구특가]  노탈리 피부 진정 케어 4종",
+      "option": "구성=[1+1] 노탈리 타미텐 겔 500ml",
+      "product_no": "25",
+      "orders": 17,
+      "quantity": 19
+    },
+    {
+      "name": "[건강미 공구특가] 페이스푸드 식물성 세럼 특별 구성 4종",
+      "option": "구성=마일드 세럼 30ml 1개 + 레귤러 세럼 50ml 1개 + 슈퍼 세럼 30ml 1개",
+      "product_no": "24",
+      "orders": 10,
+      "quantity": 10
+    },
+    {
+      "name": "[건강미 공구특가]  노탈리 피부 진정 케어 4종",
+      "option": "구성=[1+1] 노탈리 부루페놀 시트 마스크팩 10매입",
+      "product_no": "25",
+      "orders": 8,
+      "quantity": 8
+    },
+    {
+      "name": "[건강미 공구특가] 페이스푸드 식물성 세럼 특별 구성 4종",
+      "option": "구성=레귤러 세럼 50ml 1개 + 마일드 세럼 30ml 1개",
+      "product_no": "24",
+      "orders": 7,
+      "quantity": 7
+    },
+    {
+      "name": "[건강미 공구특가] 페이스푸드 식물성 세럼 특별 구성 4종",
+      "option": "구성=마일드 세럼 30ml 1개 + 레귤러 세럼 50ml 2개 + 슈퍼 세럼 30ml 2개",
+      "product_no": "24",
+      "orders": 3,
+      "quantity": 3
+    },
+    {
+      "name": "[강미언니 공구특가] 캐치콜 라이트",
+      "option": "구성=3세트",
+      "product_no": "23",
+      "orders": 1,
+      "quantity": 1
+    },
+    {
+      "name": "[건강미] 리셀에클로 리페어 더마 앰플 5개입",
+      "option": "",
+      "product_no": "12",
+      "orders": 1,
+      "quantity": 1
+    },
+    {
+      "name": "[건강미] 홀드랩 써마3 + 탄력 겔 증정",
+      "option": "",
+      "product_no": "15",
+      "orders": 1,
+      "quantity": 1
+    }
+  ]
+}
