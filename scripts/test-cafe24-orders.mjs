@@ -17,45 +17,41 @@ if(token.expires_at && Number(token.expires_at)<Date.now()+60000)throw Error("Sa
 const activeToken=token.access_token;
 const base="https://"+mall+".cafe24api.com/api/v2/admin";
 const version="2025-12-01";
-async function get(path){
+async function probe(label,path){
  const response=await fetch(base+path,{headers:{"Authorization":"Bearer "+activeToken,"X-Cafe24-Api-Version":version}});
  const body=await response.json().catch(()=>({}));
- if(!response.ok){
-  const issue=String(body.error?.code||body.error||response.status);
-  throw Error("Cafe24 API "+path.split("?")[0].replace(/orders\/[^/]+/,"orders/{order}")+" rejected: "+issue+" (HTTP "+response.status+")");
- }
- return body;
+ console.log("API_CHECK",label,"HTTP",response.status,response.ok?"OK":"FAILED");
+ return {ok:response.ok,status:response.status,body};
 }
 const now=new Date();
 const past=new Date(now.getTime()-6*86400000);
 const day=d=>d.toISOString().slice(0,10);
 const params=new URLSearchParams({start_date:day(past),end_date:day(now),limit:"5",embed:"items,buyer,receivers"});
-const list=await get("/orders?"+params);
-const orders=Array.isArray(list.orders)?list.orders:[];
-if(!orders.length){console.log("ORDER_LOOKUP_OK=true; orders_found=0 in seven-day sample; choose earlier date for further testing.");process.exit(0);}
+const listing=await probe("order-list","/orders?"+params);
+if(!listing.ok)throw Error("Order list API failed with HTTP "+listing.status);
+const orders=Array.isArray(listing.body.orders)?listing.body.orders:[];
+if(!orders.length){console.log("ORDER_LOOKUP_OK=true; sampled_order_count=0");process.exit(0);}
 const order=orders.find(o=>o.order_id);
-if(!order)throw Error("Orders endpoint returned entries without order_id");
+if(!order)throw Error("Order entries have no order_id");
 const id=String(order.order_id);
-const detail=await get("/orders/"+encodeURIComponent(id)+"?embed=items,buyer,receivers");
-const item=detail.order||{};
-const embeddedItems=Array.isArray(item.items)?item.items:Array.isArray(order.items)?order.items:[];
-const receivers=Array.isArray(item.receivers)?item.receivers:Array.isArray(order.receivers)?order.receivers:[];
-const buyer=item.buyer||order.buyer||null;
-const shipping=await get("/orders/"+encodeURIComponent(id)+"/shipments");
-const shipments=Array.isArray(shipping.shipments)?shipping.shipments:[];
-const result={
-  test:"cafe24-real-order-read",
-  checked_at:new Date().toISOString(),
-  order_lookup:true,
-  order_detail:true,
-  products_visible:embeddedItems.length>0,
-  buyer_visible:!!buyer,
-  receiver_visible:receivers.length>0,
-  receiver_address_field_present:receivers.some(r=>Boolean(r.address1||r.address_full)),
-  shipment_endpoint:true,
-  shipment_records:shipments.length,
-  has_tracking_number:shipments.some(x=>Boolean(x.tracking_no)),
-  sample_order_id_redacted:id.replace(/.(?=.{4})/g,"*")
-};
-console.log("CAFE24_ORDER_TEST:",JSON.stringify(result,null,2));
-console.log("No customer names, phone numbers, addresses, full order IDs or tracking numbers were logged.");
+const detail=await probe("order-detail","/orders/"+encodeURIComponent(id)+"?embed=items,buyer,receivers");
+const shipment=await probe("order-shipments","/orders/"+encodeURIComponent(id)+"/shipments");
+const detailObj=detail.body.order||{};
+const itemRows=Array.isArray(detailObj.items)?detailObj.items:Array.isArray(order.items)?order.items:[];
+const recipients=Array.isArray(detailObj.receivers)?detailObj.receivers:Array.isArray(order.receivers)?order.receivers:[];
+const buyer=detailObj.buyer||order.buyer||null;
+const shipments=Array.isArray(shipment.body.shipments)?shipment.body.shipments:[];
+console.log("CAFE24_ORDER_TEST",JSON.stringify({
+ tested_at:new Date().toISOString(),
+ order_listing:listing.ok,
+ order_detail:detail.ok,
+ shipment_lookup:shipment.ok,
+ products_available:itemRows.length>0,
+ buyer_available:!!buyer,
+ recipient_available:recipients.length>0,
+ address_field_available:recipients.some(r=>Boolean(r.address1||r.address_full)),
+ shipment_records:shipments.length,
+ tracking_field_available:shipments.some(r=>Boolean(r.tracking_no))
+}));
+console.log("Only success statuses and booleans are logged; no personal information is published.");
+if(!detail.ok||!shipment.ok)process.exitCode=1;
