@@ -20,6 +20,14 @@ import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'htt
 const config={apiKey:'AIzaSyCGAcOL7VrS0sLbn6WUxbgeDInTr9N9yA4',authDomain:'ggmapi-e15be.firebaseapp.com',projectId:'ggmapi-e15be',appId:'1:683663876311:web:f995832f3cd8d1a1b95092'};
 const app=initializeApp(config),auth=getAuth(app);
 const BASE='https://asia-northeast3-ggmapi-e15be.cloudfunctions.net/';
+async function checkServerHealth(){
+ try{
+   const response=await fetch(BASE+'ggmHealth',{method:'GET',cache:'no-store',signal:AbortSignal.timeout(8000)});
+   if(!response.ok)throw new Error('HTTP '+response.status);
+   const result=await response.json();
+   return result.ok===true;
+ }catch{return false;}
+}
 const $=id=>document.getElementById(id);let offset=0;let loadedIds=[];const today=new Date();const start=new Date(today.getTime()-14*86400000);const fmt=d=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');$('startDate').value=fmt(start);$('endDate').value=fmt(today);
 function message(s,isError=false){$('message').textContent=s;$('message').className=isError?'bad':''}
 function displayValue(v){return String(v??'-')}
@@ -36,8 +44,14 @@ async function api(functionName,params={}){
 onAuthStateChanged(auth,async user=>{
  $('login').classList.toggle('hide',!!user);$('work').classList.toggle('hide',!user);
  $('username').textContent=user?.email||'관리자';
- $('connection').textContent=user?'카페24 연결 확인 중…':'로그인 필요';
+ $('connection').textContent=user?'API 서버 확인 중…':'로그인 필요';
  if(!user){loadedIds=[];return;}
+ const alive=await checkServerHealth();
+ if(!alive){
+   $('connection').textContent='Firebase 서버 미연결';
+   message('Firebase API 서버에 접근할 수 없습니다. GitHub Actions의 Firebase Functions 배포가 완료되어야 카페24 주문을 가져올 수 있습니다. 현재는 실제 주문 데이터가 표시되지 않습니다.',true);
+   return;
+ }
  try{
    const status=await api('cafe24Status');
    $('connection').textContent=status.connected?'카페24 연결됨':'카페24 승인 필요';
