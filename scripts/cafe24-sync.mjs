@@ -1,9 +1,9 @@
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 const PROJECT="ggmapi-e15be";
-const MALL=process.env.CAFE24_MALL_ID||"ggmspa";
-const ID=process.env.CAFE24_CLIENT_ID;
-const SECRET=process.env.CAFE24_CLIENT_SECRET;
+const MALL=(process.env.CAFE24_MALL_ID||"ggmspa").trim();
+const ID=(process.env.CAFE24_CLIENT_ID||"").trim();
+const SECRET=(process.env.CAFE24_CLIENT_SECRET||"").trim();
 const SA_TEXT=process.env.FIREBASE_SERVICE_ACCOUNT_GGMAPI;
 const CODE=(process.env.OAUTH_CODE||"").trim();
 const REDIRECT="https://jyhome1228-cyber.github.io/ggmprogram/oauth.html";
@@ -39,13 +39,31 @@ async function saveToken(payload){
  await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
 async function cafeToken(body){
- const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
- const r=await fetch(BASE+"/oauth/token",{method:"POST",headers:{"Authorization":authorization,"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams(body)});
- const j=await r.json().catch(()=>({}));
- if(!r.ok)fail("Cafe24 token exchange failed (HTTP "+r.status+"): "+String(j.error||j.error_description||"check app redirect URI and authorization"));
+ const tokenUrl=BASE+"/oauth/token";
+ const auth=Buffer.from(ID+":"+SECRET).toString("base64");
+ const params=new URLSearchParams(body);
+ async function send(extraBody,headers){
+  const r=await fetch(tokenUrl,{method:"POST",headers,body:extraBody.toString()});
+  const j=await r.json().catch(()=>({}));
+  return {ok:r.ok,status:r.status,data:j};
+ }
+ let result=await send(params,{"Authorization":"Basic "+auth,"Content-Type":"application/x-www-form-urlencoded"});
+ // Cafe24's current Quick Start also documents form-encoded client credentials.
+ // Retry only an invalid_client rejection using that documented format.
+ if(!result.ok && (result.data.error==="invalid_client" || result.data.error?.code==="invalid_client")){
+  console.log("Cafe24 rejected Basic client credentials; trying documented form credential format");
+  result=await send(new URLSearchParams({...Object.fromEntries(params),client_id:ID,client_secret:SECRET}),{"Content-Type":"application/x-www-form-urlencoded"});
+ }
+ if(!result.ok){
+  const err=String(result.data.error?.code||result.data.error||"unknown").slice(0,80);
+  if(err==="invalid_client")fail("Cafe24 OAuth invalid_client after both methods: GitHub CAFE24_CLIENT_SECRET does not match the currently active Client ID, or the app credentials were rotated. Update only the stored Client Secret, then obtain a new 1-minute code.");
+  fail("Cafe24 token exchange failed (HTTP "+result.status+"): "+err);
+ }
+ const j=result.data;
  if(!j.access_token||!j.refresh_token)fail("Cafe24 token response missing access or refresh token");
  return j;
 }
+
 // Client ID is public OAuth app metadata, not a secret. Publish once for the setup page.
 await mkdir("data",{recursive:true});
 await writeFile("data/client.json",JSON.stringify({client_id:ID,mall:MALL})+"\n");
