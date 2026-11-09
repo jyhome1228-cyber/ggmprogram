@@ -17,7 +17,7 @@ GitHub Pages에는 **개인정보 없는 제품별 주문 집계**만 게시합�
 3. 돌아온 페이지에서 인증코드 복사 → **1분 내에** GitHub Actions의 `Cafe24 GitHub-only Order Sync` → `Run workflow` → `oauth_code` 입력 후 실행
 4. 작업 성공 시 최근 7일 제품별 집계가 공개 화면에 표시됩니다. 이후 매시간 자동 갱신합니다.
 
-GitHub Secrets는 기존 `CAFE24_CLIENT_ID`, `CAFE24_CLIENT_SECRET`, `CAFE24_MALL_ID`, `FIREBASE_SERVICE_ACCOUNT_GGMAPI`를 재사용합니다. Firebase Functions 배포는 전혀 필요 없습니다. 다만 **기존 Google Cloud 서비스 계정과 Secret Manager를 토큰의 비공개 저장소로만 사용**합니다. 순수 GitHub만으로 비밀 refresh token을 자동 갱신해 안전하게 저장할 방법이 없기 때문입니다.
+GitHub Secrets는 기존 `CAFE24_CLIENT_ID`, `CAFE24_CLIENT_SECRET`, `CAFE24_MALL_ID`, `FIREBASE_SERVICE_ACCOUNT_GGMAPI`를 재사용합니다. Firebase 함수·데이터베이스·Cloud 서비스를 호출하지 않습니다. 마지막 비밀값은 GitHub Actions 내부에서 암호화 키 재료로만 사용하며, 갱신 토큰은 GitHub 저장소의 `data/oauth-token.enc`에 AES-GCM 암호문으로만 보관합니다.
 
 > 참조: GitHub Actions 실행 대기시간 때문에 인증코드가 1분 내에 교환되지 못할 수 있습니다. 그때는 카페24 승인을 다시 받아야 합니다.
 
