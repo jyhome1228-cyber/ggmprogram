@@ -1,5 +1,10 @@
 name: Cafe24 GitHub-only Order Sync
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/cafe24-sync.mjs'
+      - '.github/workflows/cafe24-github-only.yml'
   workflow_dispatch:
     inputs:
       oauth_code:
