@@ -1,77 +1,88 @@
 name: Deploy Firebase Cafe24 API
 
+# Manual deployment only. Do not deploy on every edit.
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ggm-firebase-functions
+  cancel-in-progress: false
+
 jobs:
-  deploy-api:
-    runs-on: ubuntu-latest
+  deploy:
+    name: Deploy Firebase Functions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Node.js
+
+      - name: Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate Functions source syntax
-        run: node --check functions/index.js
-      - name: Check required configuration (no values printed)
+
+      - name: Validate required GitHub secrets
         env:
-          GCP_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
+          FIREBASE_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
           CAFE_ID: ${{ secrets.CAFE24_CLIENT_ID }}
           CAFE_SECRET: ${{ secrets.CAFE24_CLIENT_SECRET }}
           CAFE_MALL: ${{ secrets.CAFE24_MALL_ID }}
           ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
         run: |
-          for name in GCP_JSON CAFE_ID CAFE_SECRET CAFE_MALL ADMIN_UID; do
-            if [ -z "${!name}" ]; then
-              echo "::error::GitHub repository secret for $name is empty or unavailable. Check Settings > Secrets and variables > Actions > Repository secrets; use a NEW Run workflow after saving."
+          for key in FIREBASE_JSON CAFE_ID CAFE_SECRET CAFE_MALL ADMIN_UID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing GitHub secret: $key"
               exit 1
             fi
           done
-      - name: Authenticate to Google Cloud
+          node --check functions/index.js
+
+      - name: Authenticate Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
-          create_credentials_file: true
-          export_environment_variables: true
-      - name: Setup Google Cloud CLI
+
+      - name: Set up Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
-      - name: Show deployment identity
-        env:
-          DEPLOY_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
-        run: |
-          python3 - <<'PY'
-          import json,os
-          config=json.loads(os.environ["DEPLOY_JSON"])
-          print("Deploying as service account:", config["client_email"])
-          print("Target project: ggmapi-e15be")
-          PY
-      - name: Install Firebase CLI and dependencies
+
+      - name: Install Firebase deployment tools
         run: |
           npm install --global firebase-tools
           npm --prefix functions install --no-audit --no-fund
-      - name: Set server-only parameters
+
+      - name: Prepare Firebase runtime configuration
         env:
-          CAFE24_MALL_ID: ${{ secrets.CAFE24_MALL_ID }}
-          GGM_ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
+          CAFE_MALL: ${{ secrets.CAFE24_MALL_ID }}
+          ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
         run: |
-          printf 'CAFE24_MALL_ID=%s\nGGM_ADMIN_UID=%s\n' "$CAFE24_MALL_ID" "$GGM_ADMIN_UID" > functions/.env.ggmapi-e15be
+          printf 'CAFE24_MALL_ID=%s\nGGM_ADMIN_UID=%s\n' "$CAFE_MALL" "$ADMIN_UID" > functions/.env.ggmapi-e15be
           chmod 600 functions/.env.ggmapi-e15be
-      - name: Provision Cafe24 secrets
+
+      # Use gcloud to write secrets directly; avoids the Firebase CLI
+      # "functions:secrets:set" Service Usage preflight that blocked prior runs.
+      - name: Install server-side Cafe24 credentials
         env:
-          CAFE24_CLIENT_ID: ${{ secrets.CAFE24_CLIENT_ID }}
-          CAFE24_CLIENT_SECRET: ${{ secrets.CAFE24_CLIENT_SECRET }}
+          CAFE_ID: ${{ secrets.CAFE24_CLIENT_ID }}
+          CAFE_SECRET: ${{ secrets.CAFE24_CLIENT_SECRET }}
         run: |
-          mkdir -p .secrets
-          chmod 700 .secrets
-          printf '%s' "$CAFE24_CLIENT_ID" > .secrets/client-id
-          printf '%s' "$CAFE24_CLIENT_SECRET" > .secrets/client-secret
-          firebase functions:secrets:set CAFE24_CLIENT_ID --data-file .secrets/client-id --project ggmapi-e15be --non-interactive
-          firebase functions:secrets:set CAFE24_CLIENT_SECRET --data-file .secrets/client-secret --project ggmapi-e15be --non-interactive
-          rm -rf .secrets
-      - name: Deploy Firebase API Functions
-        run: firebase deploy --only functions --project ggmapi-e15be --non-interactive
+          set -euo pipefail
+          umask 077
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+          printf '%s' "$CAFE_ID" > "$tmp_dir/client-id"
+          printf '%s' "$CAFE_SECRET" > "$tmp_dir/client-secret"
+          for name in CAFE24_CLIENT_ID CAFE24_CLIENT_SECRET; do
+            if ! gcloud secrets describe "$name" --project ggmapi-e15be >/dev/null 2>&1; then
+              gcloud secrets create "$name" --replication-policy=automatic --project ggmapi-e15be
+            fi
+          done
+          gcloud secrets versions add CAFE24_CLIENT_ID --data-file="$tmp_dir/client-id" --project ggmapi-e15be >/dev/null
+          gcloud secrets versions add CAFE24_CLIENT_SECRET --data-file="$tmp_dir/client-secret" --project ggmapi-e15be >/dev/null
+
+      - name: Deploy Firebase Functions
+        run: |
+          firebase deploy --only functions --project ggmapi-e15be --non-interactive
