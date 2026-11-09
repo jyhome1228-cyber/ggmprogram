@@ -1,0 +1,63 @@
+name: Deploy Firebase Cafe24 API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check required configuration
+        env:
+          GCP_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
+          CAFE_ID: ${{ secrets.CAFE24_CLIENT_ID }}
+          CAFE_SECRET: ${{ secrets.CAFE24_CLIENT_SECRET }}
+          CAFE_MALL: ${{ secrets.CAFE24_MALL_ID }}
+          ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
+        run: |
+          for name in GCP_JSON CAFE_ID CAFE_SECRET CAFE_MALL ADMIN_UID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required secret is missing: $name"
+              exit 1
+            fi
+          done
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Install Firebase CLI and dependencies
+        run: |
+          npm install --global firebase-tools
+          npm --prefix functions install --no-audit --no-fund
+      - name: Set server-only parameters
+        env:
+          CAFE24_MALL_ID: ${{ secrets.CAFE24_MALL_ID }}
+          GGM_ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
+        run: |
+          printf 'CAFE24_MALL_ID=%s\nGGM_ADMIN_UID=%s\n' "$CAFE24_MALL_ID" "$GGM_ADMIN_UID" > functions/.env.ggmapi-e15be
+          chmod 600 functions/.env.ggmapi-e15be
+      - name: Provision Cafe24 secrets
+        env:
+          CAFE24_CLIENT_ID: ${{ secrets.CAFE24_CLIENT_ID }}
+          CAFE24_CLIENT_SECRET: ${{ secrets.CAFE24_CLIENT_SECRET }}
+        run: |
+          mkdir -p .secrets
+          chmod 700 .secrets
+          printf '%s' "$CAFE24_CLIENT_ID" > .secrets/client-id
+          printf '%s' "$CAFE24_CLIENT_SECRET" > .secrets/client-secret
+          firebase functions:secrets:set CAFE24_CLIENT_ID --data-file .secrets/client-id --project ggmapi-e15be --non-interactive
+          firebase functions:secrets:set CAFE24_CLIENT_SECRET --data-file .secrets/client-secret --project ggmapi-e15be --non-interactive
+          rm -rf .secrets
+      - name: Deploy Firebase API Functions
+        run: firebase deploy --only functions --project ggmapi-e15be --non-interactive
