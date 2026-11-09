@@ -8,6 +8,7 @@ const clientId=(process.env.CAFE24_CLIENT_ID||"").trim();
 if(!clientSecret||!serviceAccount||!clientId)throw Error("Required GitHub secrets are missing");
 const service=JSON.parse(serviceAccount);
 const key=createHash("sha256").update(clientSecret+"|"+service.private_key).digest();
+// Token state restored from the last successful Cafe24 sync commit.
 const saved=JSON.parse(await readFile("data/oauth-token.enc","utf8"));
 const decipher=createDecipheriv("aes-256-gcm",key,Buffer.from(saved.iv,"base64"));
 decipher.setAuthTag(Buffer.from(saved.tag,"base64"));
