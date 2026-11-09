@@ -39,27 +39,20 @@ async function saveToken(payload){
  await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
 async function cafeToken(body){
- const tokenUrl=BASE+"/oauth/token";
- const auth=Buffer.from(ID+":"+SECRET).toString("base64");
- const params=new URLSearchParams(body);
- async function send(extraBody,headers){
-  const r=await fetch(tokenUrl,{method:"POST",headers,body:extraBody.toString()});
-  const j=await r.json().catch(()=>({}));
-  return {ok:r.ok,status:r.status,data:j};
+ const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
+ const r=await fetch(BASE+"/oauth/token",{
+  method:"POST",
+  headers:{"Authorization":authorization,"Content-Type":"application/x-www-form-urlencoded"},
+  body:new URLSearchParams(body)
+ });
+ const j=await r.json().catch(()=>({}));
+ if(!r.ok){
+  const code=String(j.error?.code||j.error||"unknown");
+  const description=String(j.error_description||j.error?.message||"").slice(0,200);
+  if(code==="invalid_client")fail("Cafe24 OAuth invalid_client (HTTP "+r.status+"). The GitHub CAFE24_CLIENT_ID and CAFE24_CLIENT_SECRET must match the SAME current Cafe24 app. Verify both values in GitHub Secrets. Do not share them in chat.");
+  if(code==="invalid_grant")fail("Cafe24 OAuth invalid_grant. The 1-minute authorization code expired or was already used; request a new code after checking app credentials.");
+  fail("Cafe24 OAuth "+code+" (HTTP "+r.status+"). "+description);
  }
- let result=await send(params,{"Authorization":"Basic "+auth,"Content-Type":"application/x-www-form-urlencoded"});
- // Cafe24's current Quick Start also documents form-encoded client credentials.
- // Retry only an invalid_client rejection using that documented format.
- if(!result.ok && (result.data.error==="invalid_client" || result.data.error?.code==="invalid_client")){
-  console.log("Cafe24 rejected Basic client credentials; trying documented form credential format");
-  result=await send(new URLSearchParams({...Object.fromEntries(params),client_id:ID,client_secret:SECRET}),{"Content-Type":"application/x-www-form-urlencoded"});
- }
- if(!result.ok){
-  const err=String(result.data.error?.code||result.data.error||"unknown").slice(0,80);
-  if(err==="invalid_client")fail("Cafe24 OAuth invalid_client after both methods: GitHub CAFE24_CLIENT_SECRET does not match the currently active Client ID, or the app credentials were rotated. Update only the stored Client Secret, then obtain a new 1-minute code.");
-  fail("Cafe24 token exchange failed (HTTP "+result.status+"): "+err);
- }
- const j=result.data;
  if(!j.access_token||!j.refresh_token)fail("Cafe24 token response missing access or refresh token");
  return j;
 }
