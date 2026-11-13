@@ -1,0 +1,66 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>건강미 | 전체 주문번호 조회</title><meta name="theme-color" content="#667f89"><style>
+:root{font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:#253b45;background:#f4f7f8}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button{cursor:pointer}.shell{max-width:1660px;padding:30px 35px;margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.brand{display:flex;align-items:center;gap:15px}.brand img{width:42px;height:57px;object-fit:contain}h1{font-size:28px;letter-spacing:-1px;margin:4px 0}.eyebrow{font-size:11px;letter-spacing:1.5px;font-weight:800;color:#728d98}.muted{color:#8c9ba2;font-size:12px}.btn,.field{border-radius:9px;min-height:41px;border:1px solid #dce5e9;background:#fff;padding:10px 13px;color:#3e5662}.btn.primary{background:#667f89;color:#fff;border-color:#667f89;font-weight:700}.btn:disabled{opacity:.45;cursor:not-allowed}.panel{background:#fff;border:1px solid #e2e9ec;border-radius:14px;padding:20px;margin-top:19px}.notice{background:#edf3f5;padding:16px;border-radius:11px;color:#607985;line-height:1.8;font-size:13px}.notice.error{background:#fff0ef;color:#9a4742}.notice.success{background:#edf7f2;color:#377b67}.lock{max-width:570px;margin:45px auto}.lock input{width:100%;margin:13px 0}.lock button{width:100%}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.stat{background:white;border:1px solid #e4ebed;border-radius:13px;padding:20px}.stat span{font-size:12px;color:#899ba2}.stat strong{display:block;font-size:25px;margin-top:12px}.toolbar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:15px 0}.search{flex:1;min-width:230px}.tablewrap{overflow:auto;max-height:calc(100vh - 360px);min-height:200px}table{border-collapse:collapse;width:100%;min-width:1100px}th,td{padding:12px 13px;border-bottom:1px solid #eaf0f1;text-align:left;font-size:12px}th{position:sticky;top:0;background:#f8fafb;color:#879ba4;z-index:1}td{color:#536b76}tbody tr:hover{background:#f9fcfc}td strong{color:#29414d}.badge{padding:4px 7px;background:#edf3f4;border-radius:6px;font-size:11px}.hidden{display:none!important}.hint{font-size:11px;color:#8d9ca2;margin-top:16px}.split{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.pager{display:flex;align-items:center;gap:9px;justify-content:flex-end;margin-top:14px}.small{font-size:12px;color:#81929a}.nowrap{white-space:nowrap}#detail{background:#f7fafb;border-radius:11px;padding:14px;line-height:1.8;margin-top:15px;white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:850px){.shell{padding:15px}.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:22px}.panel{padding:13px}.toolbar .field{max-width:100%}.tablewrap{max-height:55vh}}
+</style></head><body><div class="shell"><header class="top"><div class="brand"><img src="assets/ggm-logo.svg" alt="건강미"><div><div class="eyebrow">GGM ORDER OPERATIONS</div><h1>전체 주문번호 조회</h1><div class="muted">주문번호 · 주문일 · 상품 · 주문상태 · 수령인 · 배송정보</div></div></div><div class="split"><a href="./" class="btn" style="text-decoration:none">← 대시보드</a><button id="lock" class="btn hidden">조회 종료</button></div></header>
+<div class="panel lock" id="unlockBox"><h2>관리자 주문내역 열기</h2><p class="muted">GitHub에서 수집한 주문정보를 암호화해 보관합니다. 서버로 비밀번호를 전송하지 않고 이 브라우저에서만 해제합니다.</p><div class="notice" id="notice">GitHub Actions에서 주문내역 암호화 파일이 생성된 후 조회할 수 있습니다. 최초 연결 시 등록한 주문조회 비밀번호를 입력하세요.</div><form id="unlockForm"><input class="field" id="password" type="password" autocomplete="off" placeholder="주문조회 비밀번호" required><button class="btn primary" type="submit">주문 목록 열기</button></form><p class="hint">관리자 암호는 화면에 저장되지 않습니다. 공개 GitHub 저장소에는 암호화된 데이터만 저장되며, 추측하기 쉬운 비밀번호는 사용하지 마세요.</p></div>
+<div id="app" class="hidden"><div class="stats"><div class="stat"><span>누적 주문번호</span><strong id="totalCount">0건</strong></div><div class="stat"><span>검색 결과</span><strong id="filteredCount">0건</strong></div><div class="stat"><span>상품내역 포함 주문</span><strong id="withItems">0건</strong></div><div class="stat"><span>데이터 최종 갱신</span><strong id="updated" style="font-size:16px">—</strong></div></div><div class="panel"><div class="toolbar"><input id="search" class="field search" placeholder="주문번호 · 상품명 · 주문자 · 수령인 검색" aria-label="주문 검색"><input type="date" id="from" class="field" aria-label="시작일"><input type="date" id="to" class="field" aria-label="종료일"><select id="status" class="field"><option value="">전체 주문상태</option></select><button class="btn primary" id="export">↓ 전체 결과 CSV</button></div><div class="tablewrap"><table><thead><tr><th>주문일</th><th>주문번호</th><th>주문자</th><th>수령인</th><th>상품·옵션</th><th>수량</th><th>주문상태</th><th>송장번호</th><th>상세</th></tr></thead><tbody id="rows"></tbody></table></div><div class="pager"><span class="small" id="paging"></span><button class="btn" id="prev">이전</button><button class="btn" id="next">다음</button></div><div id="detail" class="hidden"></div><p class="hint">조회 결과는 암호 해제된 시점에 이 브라우저에만 존재합니다. 일부 주문은 카페24 API 응답에 수령인·송장 정보가 없어 빈칸으로 표시될 수 있습니다. 조회 중 다른 사람이 화면을 볼 수 없도록 주의하세요.</p></div></div>
+</div><script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const text=s=>String(s??"");
+const esc=s=>text(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let archive=[],visible=[],page=0,updated=null;
+const pageSize=100;
+const bytes64=s=>Uint8Array.from(atob(s),ch=>ch.charCodeAt(0));
+async function decrypt(file,password){
+ const enc=new TextEncoder();
+ const material=await crypto.subtle.importKey("raw",enc.encode(password),"PBKDF2",false,["deriveKey"]);
+ const aes=await crypto.subtle.deriveKey({name:"PBKDF2",salt:bytes64(file.salt),iterations:file.iterations||250000,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["decrypt"]);
+ const cipher=bytes64(file.data),tag=bytes64(file.tag),withTag=new Uint8Array(cipher.length+tag.length);
+ withTag.set(cipher);withTag.set(tag,cipher.length);
+ const out=await crypto.subtle.decrypt({name:"AES-GCM",iv:bytes64(file.iv),tagLength:128},aes,withTag);
+ return JSON.parse(new TextDecoder().decode(out));
+}
+function allProducts(o){return Array.isArray(o.products)?o.products:[]}
+function totalQty(o){return allProducts(o).reduce((a,p)=>a+Number(p.quantity||0),0)}
+function summary(o){return allProducts(o).map(p=>p.name+(p.option?" / "+p.option:"")+" ×"+p.quantity).join(", ")}
+function filter(){
+ const needle=$("search").value.trim().toLowerCase(),from=$("from").value,to=$("to").value,status=$("status").value;
+ visible=archive.filter(o=>(!needle||[o.order_id,o.buyer_name,o.recipient_name,summary(o)].join(" ").toLowerCase().includes(needle))&&(!from||o.order_date.slice(0,10)>=from)&&(!to||o.order_date.slice(0,10)<=to)&&(!status||o.order_status===status));
+ page=0;render();
+}
+function render(){
+ $("totalCount").textContent=archive.length.toLocaleString("ko-KR")+"건";
+ $("filteredCount").textContent=visible.length.toLocaleString("ko-KR")+"건";
+ $("withItems").textContent=archive.filter(o=>allProducts(o).length>0).length.toLocaleString("ko-KR")+"건";
+ $("updated").textContent=updated?new Date(updated).toLocaleString("ko-KR"):"—";
+ const slice=visible.slice(page*pageSize,(page+1)*pageSize);
+ $("rows").innerHTML=slice.length?slice.map((o,i)=>'<tr><td class="nowrap">'+esc(o.order_date.slice(0,10))+'</td><td><strong>'+esc(o.order_id)+'</strong></td><td>'+esc(o.buyer_name||"—")+'</td><td>'+esc(o.recipient_name||"—")+'</td><td>'+esc(summary(o)||"상품정보 확인 필요")+'</td><td>'+totalQty(o)+'</td><td><span class="badge">'+esc(o.order_status||"미확인")+'</span></td><td>'+esc(o.tracking_no||"—")+'</td><td><button class="btn" data-detail="'+(page*pageSize+i)+'">보기</button></td></tr>').join(""):'<tr><td colspan="9">조건에 맞는 주문이 없습니다.</td></tr>';
+ $("paging").textContent=(page+1)+" / "+Math.max(1,Math.ceil(visible.length/pageSize))+" 페이지";
+ $("prev").disabled=page===0;$("next").disabled=(page+1)*pageSize>=visible.length;
+ document.querySelectorAll("[data-detail]").forEach(b=>b.onclick=()=>{const o=visible[Number(b.dataset.detail)];$("detail").textContent="주문번호: "+o.order_id+"\n주문일: "+o.order_date+"\n주문상태: "+(o.order_status||"미확인")+"\n주문자: "+(o.buyer_name||"미확인")+"\n수령인: "+(o.recipient_name||"미확인")+"\n연락처: "+(o.recipient_phone||"미확인")+"\n배송주소: "+(o.recipient_address||"미확인")+"\n송장번호: "+(o.tracking_no||"미확인")+"\n상품:\n"+(summary(o)||"상품정보 미확인");$("detail").classList.remove("hidden")});
+}
+$("unlockForm").onsubmit=async e=>{
+ e.preventDefault();
+ const password=$("password").value;
+ $("notice").textContent="암호화된 주문 파일을 확인하는 중입니다…";
+ try{
+  const res=await fetch("data/orders-private.enc?t="+Date.now(),{cache:"no-store"});
+  if(!res.ok)throw Error("주문번호 데이터가 아직 생성되지 않았습니다. GitHub Actions 주문 수집 실행 상태를 확인하세요.");
+  const blob=await res.json();
+  const decoded=await decrypt(blob,password);
+  if(!Array.isArray(decoded.orders))throw Error("주문 목록 형식을 확인할 수 없습니다.");
+  archive=decoded.orders;updated=decoded.updated_at||"";
+  $("password").value="";
+  $("unlockBox").classList.add("hidden");$("app").classList.remove("hidden");$("lock").classList.remove("hidden");
+  const statuses=[...new Set(archive.map(o=>o.order_status).filter(Boolean))].sort();
+  $("status").innerHTML='<option value="">전체 주문상태</option>'+statuses.map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");
+  filter();
+ }catch(err){$("password").value="";$("notice").className="notice error";$("notice").textContent="열기 실패: "+(err.name==="OperationError"?"조회 비밀번호가 일치하지 않습니다.":err.message)}
+};
+$("lock").onclick=()=>{archive=[];visible=[];updated=null;$("app").classList.add("hidden");$("unlockBox").classList.remove("hidden");$("lock").classList.add("hidden");$("detail").classList.add("hidden");$("notice").className="notice";$("notice").textContent="조회가 종료되었습니다. 비밀번호를 다시 입력하면 주문을 확인할 수 있습니다."};
+["search","from","to","status"].forEach(id=>$(id).addEventListener("input",filter));
+$("prev").onclick=()=>{page--;render()};$("next").onclick=()=>{page++;render()};
+$("export").onclick=()=>{const heads=["주문일","주문번호","주문상태","주문자","수령인","수령인 연락처","주소","상품·옵션","수량","송장번호"];const rows=visible.map(o=>[o.order_date,o.order_id,o.order_status,o.buyer_name,o.recipient_name,o.recipient_phone,o.recipient_address,summary(o),totalQty(o),o.tracking_no]);const cell=v=>{let t=text(v);if(/^[=+@\-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"'};const data="\uFEFF"+[heads,...rows].map(r=>r.map(cell).join(",")).join("\r\n");const url=URL.createObjectURL(new Blob([data],{type:"text/csv;charset=utf-8"})),link=document.createElement("a");link.href=url;link.download="건강미_전체주문조회.csv";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+})();
+</script></body></html>
