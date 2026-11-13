@@ -99,7 +99,7 @@ const today=new Date();
 const from=new Date(today.getTime()-29*86400000);
 const historyStart=(process.env.HISTORY_START||"").trim();
 const historyEnd=(process.env.HISTORY_END||"").trim();
-const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v));
+const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v));
 if(historyStart&&!validDate(historyStart))fail("HISTORY_START must be YYYY-MM-DD");
 if(historyEnd&&!validDate(historyEnd))fail("HISTORY_END must be YYYY-MM-DD");
 const period={start_date:historyStart||dateOnly(from),end_date:historyEnd||dateOnly(today)};
@@ -162,7 +162,7 @@ async function writePrivateOrders(rows){
  const key=pbkdf2Sync(VIEW_PASS,salt,250000,32,"sha256");
  const cipher=createCipheriv("aes-256-gcm",key,iv);
  const encrypted=Buffer.concat([cipher.update(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders:rows}),"utf8"),cipher.final()]);
- await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,salt:salt.toString("base64"),iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\\n");
+ await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,salt:salt.toString("base64"),iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
 if(hasViewPassword){
  const previousView=await readPrivateOrders();
