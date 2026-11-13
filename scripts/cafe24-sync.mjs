@@ -1,4 +1,4 @@
-import { createHash, createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createHash, createCipheriv, createDecipheriv, randomBytes, pbkdf2Sync } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 const PROJECT="ggmapi-e15be";
 const MALL=(process.env.CAFE24_MALL_ID||"ggmspa").trim();
@@ -97,11 +97,18 @@ await saveToken(saved);
 
 const today=new Date();
 const from=new Date(today.getTime()-29*86400000);
-const period={start_date:dateOnly(from),end_date:dateOnly(today)};
+const historyStart=(process.env.HISTORY_START||"").trim();
+const historyEnd=(process.env.HISTORY_END||"").trim();
+const validDate=v=>/^\\d{4}-\\d{2}-\\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v));
+if(historyStart&&!validDate(historyStart))fail("HISTORY_START must be YYYY-MM-DD");
+if(historyEnd&&!validDate(historyEnd))fail("HISTORY_END must be YYYY-MM-DD");
+const period={start_date:historyStart||dateOnly(from),end_date:historyEnd||dateOnly(today)};
+if(period.start_date>period.end_date)fail("History start must precede end");
+if((Date.parse(period.end_date)-Date.parse(period.start_date))/86400000>180)fail("Please run history imports in batches of at most 180 days");
 const orders=[];
 const chunks=[];
-for(let cursor=new Date(from);cursor<=today;cursor.setUTCDate(cursor.getUTCDate()+7)){
- const end=new Date(Math.min(today.getTime(),cursor.getTime()+6*86400000));
+for(let cursor=new Date(period.start_date+"T00:00:00Z");dateOnly(cursor)<=period.end_date;cursor.setUTCDate(cursor.getUTCDate()+7)){
+ const end=new Date(Math.min(Date.parse(period.end_date+"T00:00:00Z"),cursor.getTime()+6*86400000));
  chunks.push({start_date:dateOnly(cursor),end_date:dateOnly(end)});
 }
 for(const window of chunks){
@@ -119,6 +126,7 @@ for(const window of chunks){
 }
 const unique=new Map();
 for(const order of orders){if(order.order_id)unique.set(String(order.order_id),order);}
+if(orders.length && !unique.size)fail("Cafe24 did not return valid order numbers");
 // Merge order IDs from this API pull with IDs captured by earlier runs.
 const previous=await readEncryptedLedger();
 const allOrders=new Map(previous.filter(x=>x&&typeof x.id==="string").map(x=>[x.id,x]));
@@ -135,6 +143,55 @@ for(const [id,order] of unique){
 }
 await saveEncryptedLedger([...allOrders.values()].sort((a,b)=>b.date.localeCompare(a.date)));
 console.log("ORDER_ID_TRACKING",JSON.stringify({seen_in_sync:unique.size,stored_total:allOrders.size,missing_order_id_rows:orders.length-unique.size}));
+
+/* Admin-only order index: encrypted in GitHub, never written as plaintext.
+   Browser decryption requires the user's password, not an API token. */
+const VIEW_PASS=(process.env.GGM_ORDER_VIEW_PASSWORD||process.env.GGM_ADMIN_UID||"").trim();
+const hasViewPassword=VIEW_PASS.length>=16;
+async function readPrivateOrders(){
+ try {
+  const entry=JSON.parse(await readFile("data/orders-private.enc","utf8"));
+  const key=pbkdf2Sync(VIEW_PASS,Buffer.from(entry.salt,"base64"),250000,32,"sha256");
+  const decipher=createDecipheriv("aes-256-gcm",key,Buffer.from(entry.iv,"base64"));
+  decipher.setAuthTag(Buffer.from(entry.tag,"base64"));
+  return JSON.parse(Buffer.concat([decipher.update(Buffer.from(entry.data,"base64")),decipher.final()]).toString("utf8"));
+ }catch(e){if(e.code==="ENOENT")return {orders:[]};fail("Cannot decrypt order archive. Restore the original GGM_ORDER_VIEW_PASSWORD secret before syncing.");}
+}
+async function writePrivateOrders(rows){
+ const salt=randomBytes(16),iv=randomBytes(12);
+ const key=pbkdf2Sync(VIEW_PASS,salt,250000,32,"sha256");
+ const cipher=createCipheriv("aes-256-gcm",key,iv);
+ const encrypted=Buffer.concat([cipher.update(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders:rows}),"utf8"),cipher.final()]);
+ await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,salt:salt.toString("base64"),iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\\n");
+}
+if(hasViewPassword){
+ const previousView=await readPrivateOrders();
+ const orderArchive=new Map((previousView.orders||[]).filter(o=>o&&o.order_id).map(o=>[String(o.order_id),o]));
+ for(const [id,o] of unique){
+  const previous=orderArchive.get(id)||{};
+  const items=Array.isArray(o.items)?o.items:[];
+  const recv=Array.isArray(o.receivers)?o.receivers[0]||{}:(o.receivers||{});
+  const buyer=o.buyer||{};
+  const productRows=items.map(i=>({name:String(i.product_name||""),option:String(i.option_value||i.option_name||""),quantity:Number(i.quantity||0),status:String(i.order_status||"")}));
+  orderArchive.set(id,{
+    order_id:id,
+    order_date:String(o.order_date||previous.order_date||""),
+    order_status:String(o.order_status||previous.order_status||""),
+    buyer_name:String(buyer.name||o.buyer_name||previous.buyer_name||""),
+    recipient_name:String(recv.name||previous.recipient_name||""),
+    recipient_phone:String(recv.cellphone||recv.phone||previous.recipient_phone||""),
+    recipient_address:String([recv.address1,recv.address2].filter(Boolean).join(" ")||previous.recipient_address||""),
+    tracking_no:String(o.tracking_no||previous.tracking_no||""),
+    products:productRows.length?productRows:(previous.products||[]),
+    checked_at:new Date().toISOString()
+  });
+ }
+ const archived=[...orderArchive.values()].sort((a,b)=>(b.order_date||"").localeCompare(a.order_date||""));
+ await writePrivateOrders(archived);
+ console.log("PRIVATE_ORDER_ARCHIVE",JSON.stringify({retrieved_this_run:unique.size,stored_total:archived.length,contains_personal_information:true,published_as_encrypted_only:true}));
+}else{
+ console.log("PRIVATE_ORDER_ARCHIVE_SKIPPED: Add GGM_ORDER_VIEW_PASSWORD (16+ characters) as GitHub Actions secret; no order numbers will be exposed in public summaries.");
+}
 const byProduct=new Map(),byDay=new Map(),byDayProduct=new Map();
 let itemRows=0,unmapped=0,unmappedDates=0;
 function groupKey(item){
