@@ -174,7 +174,7 @@ const dailyProducts=[...byDayProduct.entries()].map(([key,p])=>{
 }).sort((a,b)=>b.date.localeCompare(a.date)||b.quantity-a.quantity);
 const summary={
  schema:2,source:"Cafe24 Admin API",updated_at:new Date().toISOString(),period,
- order_count:unique.size,order_item_rows:itemRows,
+ order_count:unique.size,tracked_order_ids_total:allOrders.size,order_item_rows:itemRows,
  total_quantity:products.reduce((sum,p)=>sum+p.quantity,0),
  products,daily,daily_products:dailyProducts,
  notes:"주문 취소·환불 조정 전 상품 수량이며 배송완료 및 송장 등록 여부를 나타내지 않습니다."
