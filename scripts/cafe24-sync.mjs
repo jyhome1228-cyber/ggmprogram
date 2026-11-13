@@ -104,6 +104,7 @@ if(historyStart&&!validDate(historyStart))fail("HISTORY_START must be YYYY-MM-DD
 if(historyEnd&&!validDate(historyEnd))fail("HISTORY_END must be YYYY-MM-DD");
 const period={start_date:historyStart||dateOnly(from),end_date:historyEnd||dateOnly(today)};
 if(period.start_date>period.end_date)fail("History start must precede end");
+if(period.end_date>dateOnly(today))fail("History end cannot be in the future");
 if((Date.parse(period.end_date)-Date.parse(period.start_date))/86400000>180)fail("Please run history imports in batches of at most 180 days");
 const orders=[];
 const chunks=[];
@@ -146,7 +147,7 @@ console.log("ORDER_ID_TRACKING",JSON.stringify({seen_in_sync:unique.size,stored_
 
 /* Admin-only order index: encrypted in GitHub, never written as plaintext.
    Browser decryption requires the user's password, not an API token. */
-const VIEW_PASS=(process.env.GGM_ORDER_VIEW_PASSWORD||process.env.GGM_ADMIN_UID||"").trim();
+const VIEW_PASS=(process.env.GGM_ORDER_VIEW_PASSWORD||"").trim();
 const hasViewPassword=VIEW_PASS.length>=16;
 async function readPrivateOrders(){
  try {
@@ -239,5 +240,7 @@ const summary={
 // Public summary deliberately excludes personal names, phone numbers,
 // addresses, order numbers, tracking numbers and OAuth credentials.
 await mkdir("data",{recursive:true});
-await writeFile("data/summary.json",JSON.stringify(summary,null,2)+"\n");
+if(!historyStart&&!historyEnd){
+ await writeFile("data/summary.json",JSON.stringify(summary,null,2)+"\n");
+}else{console.log("Historical import complete; current dashboard summary preserved");}
 console.log("Published product and date aggregates:",{orders:summary.order_count,products:products.length,days:daily.length});
