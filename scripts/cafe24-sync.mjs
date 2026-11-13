@@ -38,6 +38,28 @@ async function saveToken(payload){
  await mkdir("data",{recursive:true});
  await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
+// Keep a private encrypted order-number ledger for continuity across sync runs.
+// Do not publish IDs or recipient data in summary.json / Pages.
+async function readEncryptedLedger(){
+ try{
+  const entry=JSON.parse(await readFile("data/order-ledger.enc","utf8"));
+  const iv=Buffer.from(entry.iv,"base64"),tag=Buffer.from(entry.tag,"base64");
+  const d=createDecipheriv("aes-256-gcm",cipherKey,iv);d.setAuthTag(tag);
+  const plain=Buffer.concat([d.update(Buffer.from(entry.data,"base64")),d.final()]);
+  const decoded=JSON.parse(plain.toString("utf8"));
+  return Array.isArray(decoded.orders)?decoded.orders:[];
+ }catch(e){
+  if(e.code==="ENOENT")return [];
+  fail("Existing encrypted order ledger cannot be decrypted. Preserving current file; check GitHub Secrets.");
+ }
+}
+async function saveEncryptedLedger(orders){
+ const iv=randomBytes(12),c=createCipheriv("aes-256-gcm",cipherKey,iv);
+ const payload=Buffer.from(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders}));
+ const encrypted=Buffer.concat([c.update(payload),c.final()]);
+ await writeFile("data/order-ledger.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:c.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
+}
+
 async function cafeToken(body){
  const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
  const r=await fetch(BASE+"/oauth/token",{
@@ -97,6 +119,22 @@ for(const window of chunks){
 }
 const unique=new Map();
 for(const order of orders){if(order.order_id)unique.set(String(order.order_id),order);}
+// Merge order IDs from this API pull with IDs captured by earlier runs.
+const previous=await readEncryptedLedger();
+const allOrders=new Map(previous.filter(x=>x&&typeof x.id==="string").map(x=>[x.id,x]));
+const seenAt=new Date().toISOString();
+for(const [id,order] of unique){
+ const old=allOrders.get(id)||{};
+ allOrders.set(id,{
+  id,
+  date:String(order.order_date||old.date||"").slice(0,10),
+  status:String(order.order_status||old.status||""),
+  item_count:Array.isArray(order.items)?order.items.length:Number(old.item_count||0),
+  last_checked:seenAt
+ });
+}
+await saveEncryptedLedger([...allOrders.values()].sort((a,b)=>b.date.localeCompare(a.date)));
+console.log("ORDER_ID_TRACKING",JSON.stringify({seen_in_sync:unique.size,stored_total:allOrders.size,missing_order_id_rows:orders.length-unique.size}));
 const byProduct=new Map(),byDay=new Map(),byDayProduct=new Map();
 let itemRows=0,unmapped=0,unmappedDates=0;
 function groupKey(item){
