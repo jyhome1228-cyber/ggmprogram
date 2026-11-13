@@ -11,6 +11,14 @@ on:
         description: 'Only for first connection: short-lived Cafe24 authorization code (1 minute)'
         required: false
         type: string
+      history_start:
+        description: 'Optional past orders start (YYYY-MM-DD, up to 180 days per run)'
+        required: false
+        type: string
+      history_end:
+        description: 'Optional past orders end (YYYY-MM-DD)'
+        required: false
+        type: string
   schedule:
     - cron: '17 * * * *'
 permissions:
@@ -35,16 +43,20 @@ jobs:
           CAFE24_MALL_ID: ${{ secrets.CAFE24_MALL_ID }}
           FIREBASE_SERVICE_ACCOUNT_GGMAPI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
           OAUTH_CODE: ${{ inputs.oauth_code }}
+          HISTORY_START: ${{ inputs.history_start }}
+          HISTORY_END: ${{ inputs.history_end }}
+          GGM_ORDER_VIEW_PASSWORD: ${{ secrets.GGM_ORDER_VIEW_PASSWORD }}
+          GGM_ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
         run: node scripts/cafe24-sync.mjs
-      - name: Preserve encrypted sync state and publish aggregate
+      - name: Preserve encrypted order data and public totals
         if: always()
         run: |
-          if [ -z "$(git status --porcelain -- data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc)" ]; then
+          if [ -z "$(git status --porcelain -- data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc)" ]; then
             echo "No summary updates"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc
+          git add data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc
           git commit -m "data: refresh anonymized Cafe24 product totals [skip ci]"
           git push
