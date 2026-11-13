@@ -1,25 +1,42 @@
-# 건강미 CS Manager — 주문번호 전체 조회
+# 건강미 CS Manager — 정리된 구성
 
-## 운영 주소
-- [대시보드](https://jyhome1228-cyber.github.io/ggmprogram/)
-- [전체 주문번호 조회](https://jyhome1228-cyber.github.io/ggmprogram/orders.html)
+## 접속
+- 관리자 대시보드: https://jyhome1228-cyber.github.io/ggmprogram/
+- 전체 주문번호 검색: https://jyhome1228-cyber.github.io/ggmprogram/orders.html
+- CSV 수동 주문조회(예비 기능): https://jyhome1228-cyber.github.io/ggmprogram/private-orders.html
 
-## 현재 구현
-- 카페24 API에서 **주문번호**, 주문일, 상품·옵션·수량, 주문상태, 조회 가능한 수령인·배송 관련 필드를 수집
-- 기존 주문번호와 새 주문번호를 병합하고 중복 제거. 브라우저에서는 검색, 날짜 필터, 상태 필터, 주문 상세, CSV 다운로드
-- 기본 동기화는 최근 30일을 매시간 다시 조회해 주문 변경사항을 갱신
-- 과거 주문은 GitHub Actions의 `history_start` / `history_end`를 설정해 **최대 180일씩** 조회하고 기존 목록에 병합. 이미 확인한 현재 대시보드 집계는 변경하지 않음
-- 주문번호 및 고객·배송정보가 들어 있는 파일은 `data/orders-private.enc`에 AES-256-GCM 암호화하여 저장. 공개 JSON에는 주문번호나 고객정보를 저장하지 않음
+## 꼭 필요한 파일
+- `index.html`: 기존 제품 집계·운영 화면
+- `orders.html`: 암호화된 전체 주문번호 검색 및 CSV 다운로드
+- `scripts/cafe24-sync.mjs`: 단일 수집 프로그램 (카페24 OAuth 갱신 → 최근 30일 주문 → 주문번호 누적 → 제품 집계)
+- `.github/workflows/cafe24-github-only.yml`: 수동 실행 워크플로 1개
+- `data/oauth-token.enc`: 기존 OAuth 토큰의 암호화 파일 (삭제 금지)
+- `data/summary.json`: 공개 가능한 제품·날짜별 집계
+- `data/orders-private.enc`: **최초 수집 성공 시 생성**되는 암호화 주문 상세 파일
 
-## 처음 1회만 필요한 설정
+## 현재 상태
+- 기존 카페24 주문 84건이 포함된 `data/summary.json` (2026-11-09) 보존
+- 주문번호를 포함한 비공개 파일은 아직 없음 → 실제 주문번호 조회 성공 **미검증**
+- 복잡한 자동 과거수집 및 중복 테스트 워크플로 제거
+- 반복적인 실패 메시지를 피하기 위해 GitHub Actions의 push/정기 실행을 **일시 중단**
+- 주문번호 수집이 한 번 정상 검증된 뒤 정기 실행 재활성화 예정
 
-1. [GitHub Actions Secrets](https://github.com/jyhome1228-cyber/ggmprogram/settings/secrets/actions)에 `GGM_ORDER_VIEW_PASSWORD` 생성. **추측하기 어려운 16자 이상의 임의 비밀번호**를 설정하고 별도로 보관하세요. 비밀값은 채팅에 공유하지 마세요.
-2. [Cafe24 GitHub-only Order Sync](https://github.com/jyhome1228-cyber/ggmprogram/actions/workflows/cafe24-github-only.yml)에서 **Run workflow** 한 번 실행. 기존 Client ID/Secret과 토큰을 재사용하므로 정상적인 경우 OAuth 인증은 반복할 필요가 없습니다.
-3. 자동 수집이 성공하면 [전체 주문번호 조회](https://jyhome1228-cyber.github.io/ggmprogram/orders.html)에서 같은 비밀번호를 입력하여 조회합니다.
+## 최초 실행
+1. GitHub Secrets에 `GGM_ORDER_VIEW_PASSWORD`가 있는지 확인. 없으면 16자 이상의 **새 비밀번호**를 등록. 이 값은 카페24 Client Secret이 아닌, 주문조회 암호화용 별도 비밀번호임
+2. GitHub Actions → **Cafe24 Order Sync** → Run workflow (모든 입력칸 비운 채 실행)
+3. 초록색 체크가 표시되면 `data/orders-private.enc` 생성 여부 확인
+4. 주문번호 검색 페이지에서 **동일한** 조회 비밀번호를 입력하면 주문내역 확인 가능
 
-## 유의사항
-- 설정한 비밀번호를 변경하면 이전 암호화 파일을 열 수 없으므로, 먼저 복호화·재암호화 절차가 필요합니다.
-- GitHub Pages에 저장되는 암호문도 공개 다운로드가 가능하므로 강력한 비밀번호가 필수입니다. 공용 PC에서 사용하지 마세요. 정식 다중 사용자 운영에는 로그인된 비공개 서버가 권장됩니다.
-- 최초 저장되는 목록은 **최근 30일**입니다. 더 과거의 전체 주문번호는 기간별 과거 수집이 완료되어야 표시됩니다. 카페24 API가 조회를 허용하지 않는 오래된 주문은 CSV 이전도 고려해야 합니다.
-- 일부 주문의 수령인·배송주소·송장정보는 카페24 주문목록 API 응답에 없을 수 있으며 그 경우 빈칸으로 남깁니다. 배송누락 확정 로직은 아직 구현되지 않았습니다.
-- 현재 데이터 수집 성공 여부를 확인하기 전에는 주문번호 조회 완료라고 단정할 수 없습니다.
+주문번호 누적 파일과 주문자 정보는 암호화해서 저장하며, CSV 다운로드는 사용자의 브라우저에서 이뤄집니다. 강한 비밀번호를 사용하더라도 공개 GitHub Pages에 암호문이 게시되므로 정식 개인정보 시스템의 보안을 대체하지는 않습니다.
+
+## 과거 주문
+수동 실행 시 `history_start`, `history_end`(YYYY-MM-DD)를 지정하면 한 번에 최대 90일씩 조회해 기존 주문번호에 병합합니다. 전체 과거 주문을 자동으로 가져온 상태는 아닙니다.
+
+## 문제 발생 시
+- `SYNC_VIEW_PASSWORD`: GitHub Secret `GGM_ORDER_VIEW_PASSWORD` 확인
+- `SYNC_TOKEN_KEY`: 기존 토큰을 암호화한 Client Secret·서비스 계정 키와 현재 Secrets가 다른 상태. **암호문 삭제하지 말 것**
+- `SYNC_OAUTH`: 카페24 OAuth 재인증 또는 토큰 갱신 문제
+- `SYNC_ORDERS`: 카페24 실제 주문 조회 API 오류
+- `SYNC_ARCHIVE_PASSWORD`: 주문조회 비밀번호가 이전 암호화 파일과 다름. **이전 비밀번호 복원 필요**
+
+고객 이름·주소·연락처·송장번호가 주문 목록 응답에서 빠져 있으면 화면에 값을 만들어 넣지 않습니다. 정확한 배송 누락 판정은 후속 API 검증 과제입니다.
