@@ -45,18 +45,19 @@ jobs:
           OAUTH_CODE: ${{ inputs.oauth_code }}
           HISTORY_START: ${{ inputs.history_start }}
           HISTORY_END: ${{ inputs.history_end }}
+          HISTORY_EARLIEST: ${{ vars.CAFE24_HISTORY_EARLIEST }}
           GGM_ORDER_VIEW_PASSWORD: ${{ secrets.GGM_ORDER_VIEW_PASSWORD }}
           GGM_ADMIN_UID: ${{ secrets.GGM_ADMIN_UID }}
         run: node scripts/cafe24-sync.mjs
       - name: Preserve encrypted order data and public totals
         if: always()
         run: |
-          if [ -z "$(git status --porcelain -- data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc)" ]; then
+          if [ -z "$(git status --porcelain -- data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc data/history-progress.json)" ]; then
             echo "No summary updates"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc
+          git add data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc data/orders-private.enc data/history-progress.json
           git commit -m "data: refresh anonymized Cafe24 product totals [skip ci]"
           git push
