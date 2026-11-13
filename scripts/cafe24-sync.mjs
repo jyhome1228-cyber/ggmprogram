@@ -57,7 +57,9 @@ async function oauth(body){
 }
 await mkdir("data",{recursive:true});
 await writeFile("data/client.json",JSON.stringify({client_id:clientId,mall})+"\n");
-let token=await decryptToken();
+// A newly approved one-time code can repair an invalid old encrypted token
+// without deleting previous encrypted files.
+let token=code?null:await decryptToken();
 if(code){
  token=await oauth({grant_type:"authorization_code",code,redirect_uri:redirect});
  await saveToken(token);
