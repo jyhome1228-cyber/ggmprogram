@@ -1,287 +1,174 @@
-import { createHash, createCipheriv, createDecipheriv, randomBytes, pbkdf2Sync } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-const PROJECT="ggmapi-e15be";
-const MALL=(process.env.CAFE24_MALL_ID||"ggmspa").trim();
-const ID=(process.env.CAFE24_CLIENT_ID||"").trim();
-const SECRET=(process.env.CAFE24_CLIENT_SECRET||"").trim();
-const SA_TEXT=process.env.FIREBASE_SERVICE_ACCOUNT_GGMAPI;
-const CODE=(process.env.OAUTH_CODE||"").trim();
-const REDIRECT="https://jyhome1228-cyber.github.io/ggmprogram/oauth.html";
-const SECRET_NAME="CAFE24_ORDER_OAUTH";
-const BASE="https://"+MALL+".cafe24api.com/api/v2";
-const VERSION="2025-12-01";
-const ttl=7;
-const dateOnly=d=>d.toISOString().slice(0,10);
-function fail(message){throw new Error(message)}
-if(!ID||!SECRET||!SA_TEXT)fail("Required existing GitHub Secrets missing. Need CAFE24_CLIENT_ID, CAFE24_CLIENT_SECRET, FIREBASE_SERVICE_ACCOUNT_GGMAPI");
-if(!/^[a-zA-Z0-9_-]+$/.test(MALL))fail("Invalid Mall ID");
-// No Firebase runtime: the existing GitHub Secret is used only as private encryption material.
+import {createHash,createCipheriv,createDecipheriv,randomBytes,pbkdf2Sync} from "node:crypto";
+import {mkdir,readFile,writeFile} from "node:fs/promises";
+
+const mall=(process.env.CAFE24_MALL_ID||"ggmspa").trim();
+const clientId=(process.env.CAFE24_CLIENT_ID||"").trim();
+const clientSecret=(process.env.CAFE24_CLIENT_SECRET||"").trim();
+const serviceText=process.env.FIREBASE_SERVICE_ACCOUNT_GGMAPI||"";
+const viewPassword=(process.env.GGM_ORDER_VIEW_PASSWORD||"").trim();
+const code=(process.env.OAUTH_CODE||"").trim();
+const fromInput=(process.env.HISTORY_START||"").trim();
+const toInput=(process.env.HISTORY_END||"").trim();
+const today=new Date().toISOString().slice(0,10);
+const fromDefault=new Date(Date.now()-29*86400000).toISOString().slice(0,10);
+const from=fromInput||fromDefault,to=toInput||today;
+const historical=Boolean(fromInput||toInput);
+const base="https://"+mall+".cafe24api.com/api/v2";
+const redirect="https://jyhome1228-cyber.github.io/ggmprogram/oauth.html";
+const apiVersion="2025-12-01";
+const dates=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+"T00:00:00Z"));
+function stop(code,message){throw new Error("SYNC_"+code+": "+message)}
+if(!clientId||!clientSecret||!serviceText)stop("SETUP","Missing Cafe24 ID, Secret or existing encryption service secret");
+if(!/^[a-zA-Z0-9_-]+$/.test(mall))stop("SETUP","Mall ID is invalid");
+if(!dates(from)||!dates(to)||from>to||to>today)stop("DATES","Invalid YYYY-MM-DD range");
+if((Date.parse(to)-Date.parse(from))/86400000>89)stop("DATES","Manual historical imports must be 90 days or less");
+if(!viewPassword||viewPassword.length<16)stop("VIEW_PASSWORD","Add GGM_ORDER_VIEW_PASSWORD (at least 16 characters) in GitHub repository Secrets; existing Cafe24 credentials do not need changing");
+
 let service;
-try { service=JSON.parse(SA_TEXT); } catch { fail("Existing encryption secret is not valid JSON"); }
-if(!service.private_key)fail("Encryption key material missing");
-const cipherKey=createHash("sha256").update(SECRET+"|"+service.private_key).digest();
-async function getSavedToken(){
- let entry;
- try{entry=JSON.parse(await readFile("data/oauth-token.enc","utf8"))}
- catch(e){if(e.code==="ENOENT")return null;fail("Encrypted token file missing or invalid")}
+try{service=JSON.parse(serviceText)}catch{stop("SETUP","Encryption service JSON invalid")}
+if(!service.private_key)stop("SETUP","Encryption service private key missing");
+const tokenKey=createHash("sha256").update(clientSecret+"|"+service.private_key).digest();
+const readJSON=async name=>{try{return JSON.parse(await readFile(name,"utf8"))}catch(e){if(e.code==="ENOENT")return null;throw e}};
+async function decryptToken(){
+ const record=await readJSON("data/oauth-token.enc");
+ if(!record)return null;
  try{
-  const iv=Buffer.from(entry.iv,"base64"),tag=Buffer.from(entry.tag,"base64");
-  const decipher=createDecipheriv("aes-256-gcm",cipherKey,iv);
-  decipher.setAuthTag(tag);
-  const plain=Buffer.concat([decipher.update(Buffer.from(entry.data,"base64")),decipher.final()]).toString("utf8");
-  return JSON.parse(plain);
- }catch{fail("Cannot decrypt saved OAuth token. Check unchanged GitHub Secrets")}
+  const decipher=createDecipheriv("aes-256-gcm",tokenKey,Buffer.from(record.iv,"base64"));
+  decipher.setAuthTag(Buffer.from(record.tag,"base64"));
+  return JSON.parse(Buffer.concat([decipher.update(Buffer.from(record.data,"base64")),decipher.final()]).toString("utf8"));
+ }catch{stop("TOKEN_KEY","Saved token cannot be decrypted. The Client Secret or encryption service key may have changed. Do not delete the old encrypted file")}
 }
-async function saveToken(payload){
- const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",cipherKey,iv);
- const encrypted=Buffer.concat([cipher.update(JSON.stringify(payload),"utf8"),cipher.final()]);
- await mkdir("data",{recursive:true});
- await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
+async function saveToken(token){
+ const iv=randomBytes(12),cipher=createCipheriv("aes-256-gcm",tokenKey,iv);
+ const data=Buffer.concat([cipher.update(JSON.stringify(token)),cipher.final()]);
+ await writeFile("data/oauth-token.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:data.toString("base64")})+"\n");
 }
-// Keep a private encrypted order-number ledger for continuity across sync runs.
-// Do not publish IDs or recipient data in summary.json / Pages.
-async function readEncryptedLedger(){
- try{
-  const entry=JSON.parse(await readFile("data/order-ledger.enc","utf8"));
-  const iv=Buffer.from(entry.iv,"base64"),tag=Buffer.from(entry.tag,"base64");
-  const d=createDecipheriv("aes-256-gcm",cipherKey,iv);d.setAuthTag(tag);
-  const plain=Buffer.concat([d.update(Buffer.from(entry.data,"base64")),d.final()]);
-  const decoded=JSON.parse(plain.toString("utf8"));
-  return Array.isArray(decoded.orders)?decoded.orders:[];
- }catch(e){
-  if(e.code==="ENOENT")return [];
-  fail("Existing encrypted order ledger cannot be decrypted. Preserving current file; check GitHub Secrets.");
+async function oauth(body){
+ const response=await fetch(base+"/oauth/token",{method:"POST",headers:{
+  Authorization:"Basic "+Buffer.from(clientId+":"+clientSecret).toString("base64"),
+  "Content-Type":"application/x-www-form-urlencoded"
+ },body:new URLSearchParams(body)});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok||!data.access_token||!data.refresh_token){
+  const error=String(data.error?.code||data.error||response.status).slice(0,80);
+  stop("OAUTH","Cafe24 token exchange HTTP "+response.status+" / "+error+"; no credentials were printed");
  }
+ return {access_token:data.access_token,refresh_token:data.refresh_token,expires_at:Date.now()+(Number(data.expires_in)||7200)*1000};
 }
-async function saveEncryptedLedger(orders){
- const iv=randomBytes(12),c=createCipheriv("aes-256-gcm",cipherKey,iv);
- const payload=Buffer.from(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders}));
- const encrypted=Buffer.concat([c.update(payload),c.final()]);
- await writeFile("data/order-ledger.enc",JSON.stringify({v:1,iv:iv.toString("base64"),tag:c.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
-}
-
-async function cafeToken(body){
- const authorization="Basic "+Buffer.from(ID+":"+SECRET).toString("base64");
- const r=await fetch(BASE+"/oauth/token",{
-  method:"POST",
-  headers:{"Authorization":authorization,"Content-Type":"application/x-www-form-urlencoded"},
-  body:new URLSearchParams(body)
- });
- const j=await r.json().catch(()=>({}));
- if(!r.ok){
-  const code=String(j.error?.code||j.error||"unknown");
-  const description=String(j.error_description||j.error?.message||"").slice(0,200);
-  if(code==="invalid_client")fail("Cafe24 OAuth invalid_client (HTTP "+r.status+"). The GitHub CAFE24_CLIENT_ID and CAFE24_CLIENT_SECRET must match the SAME current Cafe24 app. Verify both values in GitHub Secrets. Do not share them in chat.");
-  if(code==="invalid_grant")fail("Cafe24 OAuth invalid_grant. The 1-minute authorization code expired or was already used; request a new code after checking app credentials.");
-  fail("Cafe24 OAuth "+code+" (HTTP "+r.status+"). "+description);
- }
- if(!j.access_token||!j.refresh_token)fail("Cafe24 token response missing access or refresh token");
- return j;
-}
-
-// Client ID is public OAuth app metadata, not a secret. Publish once for the setup page.
 await mkdir("data",{recursive:true});
-await writeFile("data/client.json",JSON.stringify({client_id:ID,mall:MALL})+"\n");
-let saved=await getSavedToken();
-if(CODE){
- const fresh=await cafeToken({grant_type:"authorization_code",code:CODE,redirect_uri:REDIRECT});
- saved={access_token:fresh.access_token,refresh_token:fresh.refresh_token,expires_at:Date.now()+7200_000};
- await saveToken(saved);
- console.log("Initial Cafe24 OAuth connection established");
+await writeFile("data/client.json",JSON.stringify({client_id:clientId,mall})+"\n");
+let token=await decryptToken();
+if(code){
+ token=await oauth({grant_type:"authorization_code",code,redirect_uri:redirect});
+ await saveToken(token);
+ console.log("AUTHENTICATION_OK: new OAuth token saved");
 }
-if(!saved){console.log("NOT CONNECTED: one-time Cafe24 OAuth approval is still required. No private order data was published.");process.exit(0)}
-// Renew on each sync; persist rotated refresh token as encrypted GitHub repository state.
-const fresh=await cafeToken({grant_type:"refresh_token",refresh_token:saved.refresh_token});
-saved={access_token:fresh.access_token,refresh_token:fresh.refresh_token,expires_at:Date.now()+7200_000};
-await saveToken(saved);
-
-const today=new Date();
-const from=new Date(today.getTime()-29*86400000);
-const historyStart=(process.env.HISTORY_START||"").trim();
-const historyEnd=(process.env.HISTORY_END||"").trim();
-const validDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v));
-if(historyStart&&!validDate(historyStart))fail("HISTORY_START must be YYYY-MM-DD");
-if(historyEnd&&!validDate(historyEnd))fail("HISTORY_END must be YYYY-MM-DD");
-const period={start_date:historyStart||dateOnly(from),end_date:historyEnd||dateOnly(today)};
-if(period.start_date>period.end_date)fail("History start must precede end");
-if(period.end_date>dateOnly(today))fail("History end cannot be in the future");
-if((Date.parse(period.end_date)-Date.parse(period.start_date))/86400000>180)fail("Please run history imports in batches of at most 180 days");
-const orders=[];
-const chunks=[];
-for(let cursor=new Date(period.start_date+"T00:00:00Z");dateOnly(cursor)<=period.end_date;cursor.setUTCDate(cursor.getUTCDate()+7)){
- const end=new Date(Math.min(Date.parse(period.end_date+"T00:00:00Z"),cursor.getTime()+6*86400000));
- chunks.push({start_date:dateOnly(cursor),end_date:dateOnly(end)});
+if(!token)stop("OAUTH","No OAuth token saved. First-time Cafe24 approval is required");
+if(!token.refresh_token)stop("OAUTH","Saved token has no refresh_token");
+if(!token.access_token||Date.now()+90000>=Number(token.expires_at||0)){
+ token=await oauth({grant_type:"refresh_token",refresh_token:token.refresh_token});
+ await saveToken(token);
+ console.log("TOKEN_REFRESHED: saved encrypted token");
 }
-for(const window of chunks){
- let complete=false;
- for(let offset=0;offset<1000;offset+=100){
-  const params=new URLSearchParams({...window,limit:"100",offset:String(offset),embed:"items"});
-  const response=await fetch(BASE+"/admin/orders?"+params,{headers:{Authorization:"Bearer "+saved.access_token,"X-Cafe24-Api-Version":VERSION}});
+const enc=new TextEncoder();
+const safeNumber=n=>Number.isFinite(Number(n))?Number(n):0;
+const urlOrders="/admin/orders";
+async function queryWeek(start,end){
+ const collected=[];
+ for(let offset=0;offset<10000;offset+=100){
+  const q=new URLSearchParams({start_date:start,end_date:end,limit:"100",offset:String(offset),embed:"items"});
+  const response=await fetch(base+urlOrders+"?"+q,{headers:{
+   Authorization:"Bearer "+token.access_token,"X-Cafe24-Api-Version":apiVersion
+  }});
   const body=await response.json().catch(()=>({}));
-  if(!response.ok)fail("Cafe24 orders GET failed (HTTP "+response.status+"): "+String(body.error?.message||body.error||"unknown"));
+  if(!response.ok)stop("ORDERS","Cafe24 orders HTTP "+response.status+" during "+start+"~"+end+"; "+String(body.error?.code||body.error?.message||"").slice(0,90));
   const batch=Array.isArray(body.orders)?body.orders:[];
-  orders.push(...batch);
-  if(batch.length<100){complete=true;break;}
+  collected.push(...batch);
+  if(batch.length<100)return collected;
  }
- if(!complete)fail("Too many orders in a 7-day window; refusing to publish incomplete figures.");
+ stop("PAGINATION","Over 10,000 order rows in a seven-day window. Refusing partial results");
 }
-const unique=new Map();
-for(const order of orders){if(order.order_id)unique.set(String(order.order_id),order);}
-if(orders.length && !unique.size)fail("Cafe24 did not return valid order numbers");
-// Merge order IDs from this API pull with IDs captured by earlier runs.
-const previous=await readEncryptedLedger();
-const allOrders=new Map(previous.filter(x=>x&&typeof x.id==="string").map(x=>[x.id,x]));
-const seenAt=new Date().toISOString();
-for(const [id,order] of unique){
- const old=allOrders.get(id)||{};
- allOrders.set(id,{
-  id,
-  date:String(order.order_date||old.date||"").slice(0,10),
-  status:String(order.order_status||old.status||""),
-  item_count:Array.isArray(order.items)?order.items.length:Number(old.item_count||0),
-  last_checked:seenAt
+const pulled=new Map();
+for(let startMs=Date.parse(from+"T00:00:00Z");startMs<=Date.parse(to+"T00:00:00Z");startMs+=7*86400000){
+ const start=new Date(startMs).toISOString().slice(0,10);
+ const end=new Date(Math.min(startMs+6*86400000,Date.parse(to+"T00:00:00Z"))).toISOString().slice(0,10);
+ const results=await queryWeek(start,end);
+ for(const order of results){if(order.order_id)pulled.set(String(order.order_id),order)}
+}
+console.log("ORDER_API_OK",JSON.stringify({from,to,unique_order_numbers:pulled.size,historical}));
+
+// Private browser-only archive, encrypted with a separate user-held passphrase.
+const keyFor=salt=>pbkdf2Sync(viewPassword,salt,250000,32,"sha256");
+async function getArchive(){
+ const record=await readJSON("data/orders-private.enc");
+ if(!record)return [];
+ try{
+  const decipher=createDecipheriv("aes-256-gcm",keyFor(Buffer.from(record.salt,"base64")),Buffer.from(record.iv,"base64"));
+  decipher.setAuthTag(Buffer.from(record.tag,"base64"));
+  const decoded=JSON.parse(Buffer.concat([decipher.update(Buffer.from(record.data,"base64")),decipher.final()]).toString("utf8"));
+  return Array.isArray(decoded.orders)?decoded.orders:[];
+ }catch{stop("ARCHIVE_PASSWORD","Cannot unlock existing private archive. Restore the original GGM_ORDER_VIEW_PASSWORD; do not overwrite")}
+}
+async function saveArchive(rows){
+ const iv=randomBytes(12),salt=randomBytes(16);
+ const cipher=createCipheriv("aes-256-gcm",keyFor(salt),iv);
+ const data=Buffer.concat([cipher.update(JSON.stringify({schema:1,orders:rows,updated_at:new Date().toISOString()}),"utf8"),cipher.final()]);
+ await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,iv:iv.toString("base64"),salt:salt.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:data.toString("base64")})+"\n");
+}
+const previous=await getArchive();
+const archive=new Map(previous.filter(x=>x?.order_id).map(x=>[String(x.order_id),x]));
+for(const [id,order] of pulled){
+ const old=archive.get(id)||{};
+ const items=Array.isArray(order.items)?order.items:[];
+ const recv=Array.isArray(order.receivers)?order.receivers[0]||{}:order.receivers||{};
+ const buyer=order.buyer||{};
+ archive.set(id,{
+  order_id:id,order_date:String(order.order_date||old.order_date||""),
+  order_status:String(order.order_status||old.order_status||""),
+  buyer_name:String(buyer.name||order.buyer_name||old.buyer_name||""),
+  recipient_name:String(recv.name||old.recipient_name||""),
+  recipient_phone:String(recv.cellphone||recv.phone||old.recipient_phone||""),
+  recipient_address:String([recv.address1,recv.address2].filter(Boolean).join(" ")||old.recipient_address||""),
+  tracking_no:String(order.tracking_no||old.tracking_no||""),
+  products:items.length?items.map(item=>({
+   name:String(item.product_name||""),option:String(item.option_value||item.option_name||""),
+   quantity:safeNumber(item.quantity),status:String(item.order_status||"")
+  })):old.products||[],
+  checked_at:new Date().toISOString()
  });
 }
-await saveEncryptedLedger([...allOrders.values()].sort((a,b)=>b.date.localeCompare(a.date)));
-console.log("ORDER_ID_TRACKING",JSON.stringify({seen_in_sync:unique.size,stored_total:allOrders.size,missing_order_id_rows:orders.length-unique.size}));
+const archived=[...archive.values()].sort((a,b)=>String(b.order_date).localeCompare(String(a.order_date)));
+await saveArchive(archived);
+console.log("PRIVATE_ORDER_ARCHIVE_OK",JSON.stringify({newly_checked:pulled.size,total_stored:archived.length}));
 
-/* Admin-only order index: encrypted in GitHub, never written as plaintext.
-   Browser decryption requires the user's password, not an API token. */
-const VIEW_PASS=(process.env.GGM_ORDER_VIEW_PASSWORD||"").trim();
-const hasViewPassword=VIEW_PASS.length>=16;
-async function readPrivateOrders(){
- try {
-  const entry=JSON.parse(await readFile("data/orders-private.enc","utf8"));
-  const key=pbkdf2Sync(VIEW_PASS,Buffer.from(entry.salt,"base64"),250000,32,"sha256");
-  const decipher=createDecipheriv("aes-256-gcm",key,Buffer.from(entry.iv,"base64"));
-  decipher.setAuthTag(Buffer.from(entry.tag,"base64"));
-  return JSON.parse(Buffer.concat([decipher.update(Buffer.from(entry.data,"base64")),decipher.final()]).toString("utf8"));
- }catch(e){if(e.code==="ENOENT")return {orders:[]};fail("Cannot decrypt order archive. Restore the original GGM_ORDER_VIEW_PASSWORD secret before syncing.");}
-}
-async function writePrivateOrders(rows){
- const salt=randomBytes(16),iv=randomBytes(12);
- const key=pbkdf2Sync(VIEW_PASS,salt,250000,32,"sha256");
- const cipher=createCipheriv("aes-256-gcm",key,iv);
- const encrypted=Buffer.concat([cipher.update(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders:rows}),"utf8"),cipher.final()]);
- await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,salt:salt.toString("base64"),iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
-}
-// Each normal sync also imports one older 180-day window, until the historical
-// boundary is reached. Historical rows never alter the current dashboard totals.
-let historicalOrders=[];
-if(hasViewPassword && !historyStart && !historyEnd){
- const oldest=(process.env.HISTORY_EARLIEST||"2020-01-01").trim();
- if(!validDate(oldest))fail("HISTORY_EARLIEST is invalid");
- let progress;
- try{progress=JSON.parse(await readFile("data/history-progress.json","utf8"))}
- catch(e){if(e.code!=="ENOENT")throw e;progress=null}
- const last=progress?.next_end||dateOnly(new Date(Date.parse(period.start_date+"T00:00:00Z")-86400000));
- if(last>=oldest){
-  const earliestWindow=dateOnly(new Date(Math.max(Date.parse(oldest+"T00:00:00Z"),Date.parse(last+"T00:00:00Z")-179*86400000)));
-  const pulled=[];
-  let successful=true;
-  try{
-   for(let cursor=new Date(earliestWindow+"T00:00:00Z");dateOnly(cursor)<=last;cursor.setUTCDate(cursor.getUTCDate()+7)){
-    const end=new Date(Math.min(Date.parse(last+"T00:00:00Z"),cursor.getTime()+6*86400000));
-    const window={start_date:dateOnly(cursor),end_date:dateOnly(end)};
-    let complete=false;
-    for(let offset=0;offset<1000;offset+=100){
-     const query=new URLSearchParams({...window,limit:"100",offset:String(offset),embed:"items"});
-     const response=await fetch(BASE+"/admin/orders?"+query,{headers:{Authorization:"Bearer "+saved.access_token,"X-Cafe24-Api-Version":VERSION}});
-     const body=await response.json().catch(()=>({}));
-     if(!response.ok)throw Error("historical API HTTP "+response.status);
-     const batch=Array.isArray(body.orders)?body.orders:[];
-     pulled.push(...batch);
-     if(batch.length<100){complete=true;break}
-    }
-    if(!complete)throw Error("historical API window exceeded 1000 orders");
-   }
-  }catch(e){successful=false;console.warn("HISTORY_BACKFILL_PAUSED:",e.message)}
-  if(successful){
-   historicalOrders=pulled.filter(o=>o.order_id);
-   const nextEnd=dateOnly(new Date(Date.parse(earliestWindow+"T00:00:00Z")-86400000));
-   await writeFile("data/history-progress.json",JSON.stringify({oldest,imported_from:earliestWindow,imported_through:last,next_end:nextEnd,done:nextEnd<oldest,orders_fetched:historicalOrders.length,updated_at:new Date().toISOString()},null,2)+"\n");
-   console.log("HISTORY_BACKFILL",JSON.stringify({from:earliestWindow,to:last,fetched:historicalOrders.length,done:nextEnd<oldest}));
+// Existing sales summary remains public, but contains no order IDs or PII.
+if(!historical){
+ const byProduct=new Map(),byDay=new Map(),byDayProduct=new Map();
+ const add=(map,key,id,qty)=>{
+  const str=JSON.stringify(key),p=map.get(str)||{ids:new Set(),quantity:0,key};
+  p.ids.add(id);p.quantity+=qty;map.set(str,p);
+ };
+ for(const [id,order] of pulled){
+  const date=String(order.order_date||"").slice(0,10);
+  if(!dates(date))continue;
+  const day=byDay.get(date)||{ids:new Set(),quantity:0};
+  day.ids.add(id);
+  for(const item of Array.isArray(order.items)?order.items:[]){
+   const name=String(item.product_name||"상품명 미확인"),option=String(item.option_value||item.option_name||"");
+   const productNo=String(item.product_no||""),qty=safeNumber(item.quantity);
+   day.quantity+=qty;add(byProduct,[productNo,name,option],id,qty);
+   add(byDayProduct,[date,productNo,name,option],id,qty);
   }
- }else console.log("HISTORY_BACKFILL_COMPLETED: reached "+oldest);
-}
-if(hasViewPassword){
- const previousView=await readPrivateOrders();
- const orderArchive=new Map((previousView.orders||[]).filter(o=>o&&o.order_id).map(o=>[String(o.order_id),o]));
- const combined=new Map(historicalOrders.map(o=>[String(o.order_id),o]));
- for(const [id,o] of unique)combined.set(id,o);
- for(const [id,o] of combined){
-  const previous=orderArchive.get(id)||{};
-  const items=Array.isArray(o.items)?o.items:[];
-  const recv=Array.isArray(o.receivers)?o.receivers[0]||{}:(o.receivers||{});
-  const buyer=o.buyer||{};
-  const productRows=items.map(i=>({name:String(i.product_name||""),option:String(i.option_value||i.option_name||""),quantity:Number(i.quantity||0),status:String(i.order_status||"")}));
-  orderArchive.set(id,{
-    order_id:id,
-    order_date:String(o.order_date||previous.order_date||""),
-    order_status:String(o.order_status||previous.order_status||""),
-    buyer_name:String(buyer.name||o.buyer_name||previous.buyer_name||""),
-    recipient_name:String(recv.name||previous.recipient_name||""),
-    recipient_phone:String(recv.cellphone||recv.phone||previous.recipient_phone||""),
-    recipient_address:String([recv.address1,recv.address2].filter(Boolean).join(" ")||previous.recipient_address||""),
-    tracking_no:String(o.tracking_no||previous.tracking_no||""),
-    products:productRows.length?productRows:(previous.products||[]),
-    checked_at:new Date().toISOString()
-  });
+  byDay.set(date,day);
  }
- const archived=[...orderArchive.values()].sort((a,b)=>(b.order_date||"").localeCompare(a.order_date||""));
- await writePrivateOrders(archived);
- console.log("PRIVATE_ORDER_ARCHIVE",JSON.stringify({retrieved_this_run:unique.size,stored_total:archived.length,contains_personal_information:true,published_as_encrypted_only:true}));
-}else{
- console.log("PRIVATE_ORDER_ARCHIVE_SKIPPED: Add GGM_ORDER_VIEW_PASSWORD (16+ characters) as GitHub Actions secret; no order numbers will be exposed in public summaries.");
-}
-const byProduct=new Map(),byDay=new Map(),byDayProduct=new Map();
-let itemRows=0,unmapped=0,unmappedDates=0;
-function groupKey(item){
- return [String(item.product_no||""),String(item.product_name||"상품명 미확인"),String(item.option_value||item.option_name||"")];
-}
-function addProduct(map,key,orderId,qty){
- const id=JSON.stringify(key);
- const p=map.get(id)||{product_no:key[0],name:key[1],option:key[2],ids:new Set(),quantity:0};
- p.ids.add(orderId);p.quantity+=qty;map.set(id,p);
-}
-for(const order of unique.values()){
- const id=String(order.order_id);
- const date=String(order.order_date||"").slice(0,10);
- if(!/^\d{4}-\d{2}-\d{2}$/.test(date)){unmappedDates++;continue;}
- const items=Array.isArray(order.items)?order.items:[];
- if(items.length===0){unmapped++;continue;}
- const day=byDay.get(date)||{date,ids:new Set(),quantity:0};
- day.ids.add(id);
- for(const item of items){
-  itemRows++;
-  const qty=Number(item.quantity)||0;
-  const key=groupKey(item);
-  addProduct(byProduct,key,id,qty);
-  addProduct(byDayProduct,[date,...key],id,qty);
-  day.quantity+=qty;
- }
- byDay.set(date,day);
-}
-if(unmapped||unmappedDates)fail("Incomplete order item or date data: items="+unmapped+", dates="+unmappedDates+". Previous summary retained.");
-const normalize=map=>[...map.values()].map(p=>({...(p.date?{date:p.date}:{}),product_no:p.product_no,name:p.name,option:p.option,orders:p.ids.size,quantity:p.quantity})).sort((a,b)=>b.quantity-a.quantity);
-const products=normalize(byProduct);
-const daily=[...byDay.values()].map(d=>({date:d.date,orders:d.ids.size,quantity:d.quantity})).sort((a,b)=>b.date.localeCompare(a.date));
-
-const dailyProducts=[...byDayProduct.entries()].map(([key,p])=>{
- const [date,product_no,name,option]=JSON.parse(key);
- return {date,product_no,name,option,orders:p.ids.size,quantity:p.quantity};
-}).sort((a,b)=>b.date.localeCompare(a.date)||b.quantity-a.quantity);
-const summary={
- schema:2,source:"Cafe24 Admin API",updated_at:new Date().toISOString(),period,
- order_count:unique.size,tracked_order_ids_total:allOrders.size,order_item_rows:itemRows,
- total_quantity:products.reduce((sum,p)=>sum+p.quantity,0),
- products,daily,daily_products:dailyProducts,
- notes:"주문 취소·환불 조정 전 상품 수량이며 배송완료 및 송장 등록 여부를 나타내지 않습니다."
-};
-// Public summary deliberately excludes personal names, phone numbers,
-// addresses, order numbers, tracking numbers and OAuth credentials.
-await mkdir("data",{recursive:true});
-if(!historyStart&&!historyEnd){
+ const products=[...byProduct.values()].map(x=>({product_no:x.key[0],name:x.key[1],option:x.key[2],orders:x.ids.size,quantity:x.quantity})).sort((a,b)=>b.quantity-a.quantity);
+ const daily=[...byDay.entries()].map(([date,x])=>({date,orders:x.ids.size,quantity:x.quantity})).sort((a,b)=>b.date.localeCompare(a.date));
+ const daily_products=[...byDayProduct.values()].map(x=>({date:x.key[0],product_no:x.key[1],name:x.key[2],option:x.key[3],orders:x.ids.size,quantity:x.quantity})).sort((a,b)=>b.date.localeCompare(a.date));
+ const summary={schema:2,source:"Cafe24 Admin API",updated_at:new Date().toISOString(),period:{start_date:from,end_date:to},
+  order_count:pulled.size,tracked_order_ids_total:archived.length,total_quantity:products.reduce((v,x)=>v+x.quantity,0),products,daily,daily_products,
+  notes:"수량은 취소·환불 조정 이전의 주문상품 수량일 수 있습니다."};
  await writeFile("data/summary.json",JSON.stringify(summary,null,2)+"\n");
-}else{console.log("Historical import complete; current dashboard summary preserved");}
-console.log("Published product and date aggregates:",{orders:summary.order_count,products:products.length,days:daily.length});
+ console.log("PUBLIC_SUMMARY_OK",{orders:summary.order_count,products:products.length});
+}else{
+ console.log("HISTORY_IMPORTED: existing dashboard summary left unchanged");
+}
