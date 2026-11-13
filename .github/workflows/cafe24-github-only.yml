@@ -36,7 +36,8 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_GGMAPI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_GGMAPI }}
           OAUTH_CODE: ${{ inputs.oauth_code }}
         run: node scripts/cafe24-sync.mjs
-      - name: Commit public aggregate only
+      - name: Preserve encrypted sync state and publish aggregate
+        if: always()
         run: |
           if [ -z "$(git status --porcelain -- data/summary.json data/oauth-token.enc data/client.json data/order-ledger.enc)" ]; then
             echo "No summary updates"
