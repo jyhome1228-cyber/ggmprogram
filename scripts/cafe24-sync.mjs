@@ -165,10 +165,51 @@ async function writePrivateOrders(rows){
  const encrypted=Buffer.concat([cipher.update(JSON.stringify({schema:1,updated_at:new Date().toISOString(),orders:rows}),"utf8"),cipher.final()]);
  await writeFile("data/orders-private.enc",JSON.stringify({v:1,alg:"PBKDF2-SHA256+A256GCM",iterations:250000,salt:salt.toString("base64"),iv:iv.toString("base64"),tag:cipher.getAuthTag().toString("base64"),data:encrypted.toString("base64")})+"\n");
 }
+// Each normal sync also imports one older 180-day window, until the historical
+// boundary is reached. Historical rows never alter the current dashboard totals.
+let historicalOrders=[];
+if(hasViewPassword && !historyStart && !historyEnd){
+ const oldest=(process.env.HISTORY_EARLIEST||"2020-01-01").trim();
+ if(!validDate(oldest))fail("HISTORY_EARLIEST is invalid");
+ let progress;
+ try{progress=JSON.parse(await readFile("data/history-progress.json","utf8"))}
+ catch(e){if(e.code!=="ENOENT")throw e;progress=null}
+ const last=progress?.next_end||dateOnly(new Date(Date.parse(period.start_date+"T00:00:00Z")-86400000));
+ if(last>=oldest){
+  const earliestWindow=dateOnly(new Date(Math.max(Date.parse(oldest+"T00:00:00Z"),Date.parse(last+"T00:00:00Z")-179*86400000)));
+  const pulled=[];
+  let successful=true;
+  try{
+   for(let cursor=new Date(earliestWindow+"T00:00:00Z");dateOnly(cursor)<=last;cursor.setUTCDate(cursor.getUTCDate()+7)){
+    const end=new Date(Math.min(Date.parse(last+"T00:00:00Z"),cursor.getTime()+6*86400000));
+    const window={start_date:dateOnly(cursor),end_date:dateOnly(end)};
+    let complete=false;
+    for(let offset=0;offset<1000;offset+=100){
+     const query=new URLSearchParams({...window,limit:"100",offset:String(offset),embed:"items"});
+     const response=await fetch(BASE+"/admin/orders?"+query,{headers:{Authorization:"Bearer "+saved.access_token,"X-Cafe24-Api-Version":VERSION}});
+     const body=await response.json().catch(()=>({}));
+     if(!response.ok)throw Error("historical API HTTP "+response.status);
+     const batch=Array.isArray(body.orders)?body.orders:[];
+     pulled.push(...batch);
+     if(batch.length<100){complete=true;break}
+    }
+    if(!complete)throw Error("historical API window exceeded 1000 orders");
+   }
+  }catch(e){successful=false;console.warn("HISTORY_BACKFILL_PAUSED:",e.message)}
+  if(successful){
+   historicalOrders=pulled.filter(o=>o.order_id);
+   const nextEnd=dateOnly(new Date(Date.parse(earliestWindow+"T00:00:00Z")-86400000));
+   await writeFile("data/history-progress.json",JSON.stringify({oldest,imported_from:earliestWindow,imported_through:last,next_end:nextEnd,done:nextEnd<oldest,orders_fetched:historicalOrders.length,updated_at:new Date().toISOString()},null,2)+"\n");
+   console.log("HISTORY_BACKFILL",JSON.stringify({from:earliestWindow,to:last,fetched:historicalOrders.length,done:nextEnd<oldest}));
+  }
+ }else console.log("HISTORY_BACKFILL_COMPLETED: reached "+oldest);
+}
 if(hasViewPassword){
  const previousView=await readPrivateOrders();
  const orderArchive=new Map((previousView.orders||[]).filter(o=>o&&o.order_id).map(o=>[String(o.order_id),o]));
- for(const [id,o] of unique){
+ const combined=new Map(historicalOrders.map(o=>[String(o.order_id),o]));
+ for(const [id,o] of unique)combined.set(id,o);
+ for(const [id,o] of combined){
   const previous=orderArchive.get(id)||{};
   const items=Array.isArray(o.items)?o.items:[];
   const recv=Array.isArray(o.receivers)?o.receivers[0]||{}:(o.receivers||{});
