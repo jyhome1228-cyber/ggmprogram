@@ -105,7 +105,7 @@ function draw(){
  }else if(state.view==="shipping"){
   html+='<section class="panel"><h2>배송·CS 모듈</h2><p class="description" style="margin:10px 0 18px">현재 GitHub Pages는 누구나 접속 가능한 정적 페이지이므로 고객 주소·수령인·송장번호를 표시하지 않습니다.</p><div class="status-table"><div class="mini">송장번호 조회<b>관리자 인증 API 필요</b></div><div class="mini">미배송 주문 추출<b>주문/출고 상태 API 검증 필요</b></div><div class="mini">CS 처리메모<b>비공개 데이터 저장소 필요</b></div></div><p class="foot"><a class="btn primary" href="private-orders.html" style="display:inline-block;text-decoration:none;margin-top:16px">수령인·배송지 CSV 조회 열기 →</a><br><br>API 기반 수령인·송장 조회는 별도 인증 서버가 필요한 기능입니다.</p></section>';
  }else{
-  html+='<section class="panel"><h2>데이터 수집 및 다운로드</h2><div class="help" style="margin-top:14px">API 수집: 카페24 주문 및 주문상품 정보<br>집계 범위: '+esc(s.period.start_date)+' ~ '+esc(s.period.end_date)+'<br>동기화: GitHub Actions 매시간 실행 예정<br>조회 유형: 제품별 / 일자별 / 일자×제품별<br>엑셀: CSV 형식, 검색 기간 및 조건 반영<br>제외: 고객명·연락처·주소·주문번호·송장정보</div><p class="foot">과거 주문 전체를 조회하려면 날짜 범위를 나눠 누적 수집하는 기능을 추가해야 합니다. 현재 보이는 데이터는 수집된 기간으로 한정됩니다.</p></section>';
+  html+='<section class="panel"><h2>데이터 수집 및 다운로드</h2><div class="help" style="margin-top:14px">API 수집: 카페24 주문 및 주문상품 정보<br>집계 범위: '+esc(s.period.start_date)+' ~ '+esc(s.period.end_date)+'<br>동기화: GitHub Actions 매시간 실행 예정<br>조회 유형: 제품별 / 일자별 / 일자×제품별<br>누적 확인한 주문번호: '+number(s.tracked_order_ids_total||0)+'건 (비공개 암호화 저장)<br>엑셀: CSV 형식, 검색 기간 및 조건 반영<br>제외: 고객명·연락처·주소·주문번호·송장정보</div><p class="foot">과거 주문 전체를 조회하려면 날짜 범위를 나눠 누적 수집하는 기능을 추가해야 합니다. 현재 보이는 데이터는 수집된 기간으로 한정됩니다.</p></section>';
  }
  el("body").innerHTML=html;
  el("allProducts")?.addEventListener("click",()=>{state.view="products";draw()});
