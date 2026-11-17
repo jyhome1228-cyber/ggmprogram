@@ -58,7 +58,7 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 'use strict';
 const $=id=>document.getElementById(id);
 const MAX_ORDERS=500;
-const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0,matches:[],lastComplete:false,lastRange:null};
+const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0,matches:[],lastComplete:false,lastRange:null,catalogError:''};
 const fmt=x=>x==null?'—':Number.isFinite(Number(x))?Number(x).toLocaleString('ko-KR')+'원':'—';
 const kstDay=t=>new Date(t+9*3600000).toISOString().slice(0,10);
 function td(row,value,cls){const el=document.createElement('td');el.textContent=value??'—';if(cls)el.className=cls;row.append(el);return el}
@@ -69,7 +69,14 @@ function renderCatalog(){
  const term=$('search').value.trim().toLocaleLowerCase('ko-KR');
  const list=state.products.filter(x=>x.product_name.toLocaleLowerCase('ko-KR').includes(term)||String(x.product_no||'').includes(term));
  const tbody=$('products');tbody.replaceChildren();
- if(!list.length){const tr=document.createElement('tr');const cell=td(tr,state.products.length?'검색된 상품이 없습니다.':'불러온 상품이 없습니다.','empty');cell.colSpan=3;tbody.append(tr)}
+ if(!list.length){
+ const tr=document.createElement('tr'),cell=document.createElement('td');cell.className='empty';cell.colSpan=3;
+ if(state.catalogError.includes('상품 조회 권한')){
+   const a=document.createElement('a');a.href='/oauth/start';a.className='product-btn';a.textContent='카페24 상품 읽기 권한 재승인';
+   cell.append('상품 목록을 불러올 권한이 없습니다. ',a);
+ }else cell.textContent=state.catalogError|| (state.products.length?'검색된 상품이 없습니다.':'불러온 상품이 없습니다.');
+ tr.append(cell);tbody.append(tr);
+}
  for(const p of list){
    const tr=document.createElement('tr');if(state.selected?.product_no===p.product_no)tr.className='selected';
    td(tr,p.product_no||'—');
@@ -80,7 +87,7 @@ function renderCatalog(){
 }
 async function loadCatalog(reset=false){
  if(state.loading)return;
- if(reset){state.offset=0;state.more=false;state.products=[];}
+ if(reset){state.offset=0;state.more=false;state.products=[];state.catalogError='';}
  state.loading=true;setCatalogControls();
  $('catalogStatus').innerHTML='<span class="loader" aria-hidden="true"></span>카페24 상품 조회 중';
  try{
@@ -88,17 +95,11 @@ async function loadCatalog(reset=false){
    const data=await response.json();
    if(!response.ok)throw Error(data.error||'상품 조회 실패 ('+response.status+')');
    if(!Array.isArray(data.products))throw Error('잘못된 상품 API 응답');
-   state.products.push(...data.products);
+   state.catalogError='';state.products.push(...data.products);
    state.offset+=data.products.length;state.more=!!data.has_more&&state.offset<=5000;
    $('catalogStatus').textContent='상품 '+state.products.length+'개 불러옴'+(state.more?' · 추가 상품 있음':'');
  }catch(e){
-   $('catalogStatus').textContent='상품조회 오류: '+errorMessage(e);
-   if(state.products.length===0 && /상품 조회 권한/.test(errorMessage(e))) {
-     const tbody=$('products');tbody.replaceChildren();
-     const tr=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=3;
-     const link=document.createElement('a');link.href='/oauth/start';link.className='product-btn';link.textContent='카페24 재연결 (상품 읽기 권한 승인)';
-     cell.append('상품 API 권한이 필요합니다. ',link);tr.append(cell);tbody.append(tr);
-   }
+   state.catalogError=errorMessage(e);$('catalogStatus').textContent='상품조회 오류: '+state.catalogError;
  }finally{state.loading=false;renderCatalog()}
 }
 function choiceMarkup(p){
