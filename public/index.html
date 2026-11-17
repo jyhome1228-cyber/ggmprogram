@@ -32,6 +32,12 @@ h1{font-size:30px;letter-spacing:-1.3px;margin:0 0 10px;font-weight:800}p{margin
 .pages{display:flex;gap:7px}.meta{color:#8190a2;font-size:12px}footer{color:#9ba5b4;margin-top:24px;font-size:11px}
 @media(max-width:1050px){.sidebar{width:78px;min-width:78px;padding:25px 10px}.logo{font-size:13px;padding:0 3px 24px}.logo small,.nav-label,.nav span,.sidebar-foot{display:none}.nav{justify-content:center;padding:14px}.content{padding:28px 22px}.topbar{padding:0 22px}.metrics{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:620px){.sidebar{width:55px;min-width:55px;padding:20px 5px}.logo{font-size:10px}.content{padding:22px 14px}.topbar{padding:0 14px}.metrics{gap:8px}.metric{padding:15px;min-height:108px}.metric .value{font-size:24px}.heading{align-items:flex-start;flex-direction:column}.search{width:100%}.filters>*{flex-grow:1}h1{font-size:25px}.panel-head{padding:19px 15px}.filters{padding:0 15px 15px}.pagination{padding:15px}}
+#orderDialog{width:min(700px,calc(100vw - 32px));border:1px solid var(--line);border-radius:16px;padding:0;box-shadow:0 32px 80px #17223733;color:var(--text)}#orderDialog::backdrop{background:#0b1932a3}
+.dialog-head{padding:25px 28px 19px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--line)}
+.dialog-head h2{font-size:22px;letter-spacing:-.5px;margin:3px 0 10px}.dialog-head small{color:var(--muted)}
+.dialog-content{padding:14px 28px 26px;max-height:55vh;overflow:auto}.dialog-foot{padding:16px 28px;background:#f8fafc;color:#8997aa;font-size:11px}
+.item{padding:17px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}.item-title{font-weight:750;font-size:14px}.item-sub{margin-top:9px;color:#78879a;font-size:12px;line-height:1.8}.item-status{display:inline-block;margin-top:7px;font-size:11px;color:#496a9c;background:#edf3fb;padding:5px 9px;border-radius:5px}
+.order-link{border:0;background:transparent;color:#213858;padding:0;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -51,26 +57,33 @@ h1{font-size:30px;letter-spacing:-1.3px;margin:0 0 10px;font-weight:800}p{margin
     <div class="heading"><div><div class="eyebrow">ORDER MANAGEMENT</div><h1>주문 현황</h1><p>카페24에 등록된 주문을 실시간으로 요청해 조회합니다.</p></div><div class="actions"><button id="reconnect" class="btn">카페24 재연결</button><button id="refresh" class="btn primary">새로고침</button></div></div>
     <section class="metrics">
       <div class="metric"><div class="label">조회된 주문</div><div class="value" id="metricCount">—</div><div class="foot">현재 페이지 기준</div></div>
-      <div class="metric"><div class="label">결제완료 상태</div><div class="value" id="metricPaid">—</div><div class="foot">현재 페이지 기준</div></div>
-      <div class="metric"><div class="label">결제대기 상태</div><div class="value" id="metricUnpaid">—</div><div class="foot">현재 페이지 기준</div></div>
+      <div class="metric"><div class="label">결제완료 주문</div><div class="value" id="metricPaid">—</div><div class="foot">현재 페이지 기준</div></div>
+      <div class="metric"><div class="label">결제대기 주문</div><div class="value" id="metricUnpaid">—</div><div class="foot">현재 페이지 기준</div></div>
       <div class="metric"><div class="label">현재 조회 범위</div><div class="value" id="metricDays">30일</div><div class="foot">최대 최근 30일</div></div>
     </section>
     <section class="panel">
       <div class="panel-head"><div><h2>전체 주문 조회</h2><small id="caption">주문 데이터를 불러오는 중입니다.</small></div><span class="meta" id="updated">—</span></div>
       <div class="filters"><input class="search" id="search" type="search" placeholder="주문번호 검색" aria-label="주문번호 검색"><select id="days" aria-label="조회 기간"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option></select><select id="pay" aria-label="결제 상태"><option value="">결제상태 전체</option><option value="T">결제완료(T)</option><option value="F">결제대기(F)</option></select><button class="btn" id="csv">현재 목록 CSV 저장</button></div>
-      <div class="table-wrap"><table><thead><tr><th>주문번호</th><th>주문 일시</th><th>주문상태 (원본 코드)</th><th>결제상태 (원본 코드)</th><th>주문금액</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">조회 중입니다.</td></tr></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th>주문번호</th><th>주문 일시</th><th>상품·배송상태</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">조회 중입니다.</td></tr></tbody></table></div>
       <div class="pagination"><span id="pageInfo" class="meta">—</span><div class="pages"><button id="prev" class="btn" disabled>이전</button><button id="next" class="btn" disabled>다음</button></div></div>
     </section>
-    <div class="notice" id="notice">현재 페이지에 표시된 주문만 집계합니다. 주문·결제 상태는 카페24에서 받은 원본 코드이며, 전체 주문수나 배송 누락 건수와 다를 수 있습니다.</div>
-    <footer>GGM OPS v0.1 · 실 주문 조회 전용 · 주문 수정 및 배송 처리 기능 없음</footer>
+    <div class="notice" id="notice">현재 페이지에 표시된 주문만 집계합니다. 상품별 배송상태는 주문번호를 눌러 조회할 수 있으며, 전체 주문수나 배송 누락 건수와 다를 수 있습니다.</div>
+    <footer>GGM OPS v0.2 · 실 주문 조회 전용 · 주문 수정 및 배송 처리 기능 없음</footer>
   </main>
 </div></div>
+<dialog id="orderDialog" aria-labelledby="dialogTitle">
+  <div class="dialog-head"><div><div class="eyebrow">ORDER DETAIL</div><h2 id="dialogTitle">주문 상품 조회</h2><small id="dialogDate"></small></div><button type="button" class="btn" id="closeDialog">닫기</button></div>
+  <div id="dialogContents" class="dialog-content">상품 정보를 불러오는 중입니다.</div>
+  <div class="dialog-foot">실제 카페24 상품정보만 표시 · 주문 수정 불가</div>
+</dialog>
 <script>
 (() => {
 'use strict';
 const byId = id => document.getElementById(id);
 const state = { orders: [], offset: 0, limit: 50, hasMore: false, days: 30, busy: false };
 const fmt = value => { const n = Number(value); return Number.isFinite(n) ? new Intl.NumberFormat('ko-KR').format(n) + '원' : '—'; };
+const payName = value => value==='T'?'결제완료':value==='F'?'결제대기':value==='M'?'부분결제':value?'기타 ('+value+')':'정보 없음';
+const statusName = value => ({N00:'입금전',N10:'상품준비',N20:'배송준비',N21:'배송대기',N22:'배송보류',N30:'배송중',N40:'배송완료',N50:'구매확정',C00:'취소신청',C40:'취소완료',R00:'반품신청',R40:'반품완료',E00:'교환신청',E40:'교환완료'})[value] || (value ? '상태 '+value : '상세 조회');
 const date = value => value ? String(value).slice(0,19).replace('T',' ') : '—';
 const cell = (tr, value, cls) => { const td = document.createElement('td'); td.textContent = value == null ? '—' : String(value); if(cls)td.className=cls; tr.append(td); };
 const message = (text, error = false) => { byId('notice').textContent=text; byId('notice').className='notice' + (error?' error':''); };
@@ -79,17 +92,51 @@ function render() {
   const view=state.orders.filter(o=>String(o.order_id).toLowerCase().includes(query) && (!pay||String(o.payment_status)===pay));
   const body=byId('rows'); body.replaceChildren();
   if(!view.length){ const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.className='empty';td.textContent=state.orders.length?'필터 조건에 맞는 주문이 없습니다.':'해당 기간에 조회된 주문이 없습니다.';tr.append(td);body.append(tr); }
-  view.forEach(o=>{const tr=document.createElement('tr');cell(tr,o.order_id,'id');cell(tr,date(o.order_date));cell(tr,o.order_status||'—');cell(tr,o.payment_status||'—');cell(tr,fmt(o.amount),'money');body.append(tr);});
+  view.forEach(o=>{
+    const tr=document.createElement('tr');
+    const td=document.createElement('td'), btn=document.createElement('button');
+    btn.type='button';btn.className='order-link';btn.textContent=o.order_id;btn.addEventListener('click',()=>openOrder(o));
+    td.append(btn);tr.append(td);
+    cell(tr,date(o.order_date));cell(tr,statusName(o.order_status));cell(tr,payName(o.payment_status));cell(tr,fmt(o.amount),'money');body.append(tr);
+  });
   byId('metricCount').textContent=String(state.orders.length);
   byId('metricPaid').textContent=String(state.orders.filter(o=>o.payment_status==='T').length);
   byId('metricUnpaid').textContent=String(state.orders.filter(o=>o.payment_status==='F').length);
   byId('metricDays').textContent=state.days+'일';
-  byId('pageInfo').textContent=(state.offset+1)+'~'+(state.offset+state.orders.length)+'번 조회 구간 · 화면 표시 '+view.length+'건';
-  byId('caption').textContent='이번 요청 '+state.orders.length+'건 반환 · 전체 건수 아님';
+  byId('pageInfo').textContent=state.orders.length ? (state.offset+1)+'~'+(state.offset+state.orders.length)+'번 조회 구간 · 화면 표시 '+view.length+'건' : '조회된 주문 없음';
+  byId('caption').textContent='이번 요청 '+state.orders.length+'건 반환 · 전체 건수 아님 · 주문번호 클릭 시 상품 조회';
   byId('prev').disabled=state.busy||state.offset===0;byId('next').disabled=state.busy||!state.hasMore;
   byId('csv').disabled=!view.length;
   return view;
 }
+async function openOrder(order) {
+  const dlg=byId('orderDialog');
+  byId('dialogTitle').textContent='주문 '+order.order_id;
+  byId('dialogDate').textContent=date(order.order_date)+' · '+payName(order.payment_status)+' · '+fmt(order.amount);
+  byId('dialogContents').textContent='상품·배송 정보를 불러오는 중입니다.';
+  dlg.showModal();
+  try {
+    const res=await fetch('/api/orders/'+encodeURIComponent(order.order_id)+'/items',{credentials:'same-origin',cache:'no-store'});
+    const data=await res.json();
+    if(!res.ok)throw Error(data.error||'상품 조회에 실패했습니다.');
+    const box=byId('dialogContents');box.replaceChildren();
+    if(!data.items?.length){box.textContent='등록된 주문 상품이 없거나 카페24에서 상품 정보를 제공하지 않았습니다.';return;}
+    data.items.forEach(x=>{
+      const item=document.createElement('section');item.className='item';
+      const title=document.createElement('div');title.className='item-title';title.textContent=x.name;item.append(title);
+      const sub=document.createElement('div');sub.className='item-sub';
+      const option=Array.isArray(x.options)?x.options.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(', '):String(x.options||'');
+      sub.textContent='수량 '+(x.quantity??'미제공')+(option?' · 옵션 '+option:'');
+      if(x.tracking_no)sub.textContent+=' · 송장 '+x.tracking_no;
+      if(x.shipping_company_name)sub.textContent+=' ('+x.shipping_company_name+')';
+      item.append(sub);
+      const status=document.createElement('span');status.className='item-status';status.textContent=statusName(x.order_status);item.append(status);
+      box.append(item);
+    });
+  }catch(err){byId('dialogContents').textContent=err.message;}
+}
+byId('closeDialog').addEventListener('click',()=>byId('orderDialog').close());
+byId('orderDialog').addEventListener('click',e=>{if(e.target===byId('orderDialog'))byId('orderDialog').close();});
 async function load() {
   if(state.busy)return; state.busy=true;byId('refresh').disabled=true; byId('caption').textContent='카페24 주문 조회 중...';
   try {
