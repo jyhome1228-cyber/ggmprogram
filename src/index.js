@@ -214,6 +214,72 @@ async function shippingReviewOrders(url, env) {
   });
 }
 
+
+function normalizeOrderItems(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [];
+  return list.map(item => {
+    const opt = Array.isArray(item.options) ? item.options : [];
+    function optionLabel(value) {
+      if (typeof value === 'string') return value.trim();
+      if (Array.isArray(value)) return value.map(optionLabel).filter(Boolean).join(', ');
+      if (!value || typeof value !== 'object') return '';
+      const nested = value.option_value;
+      const label = optionLabel(value.option_text ?? (nested?.option_text ?? nested));
+      return label ? [value.option_name, label].filter(Boolean).join(': ') : '';
+    }
+    return {
+      product_no: item.product_no == null ? null : String(item.product_no),
+      product_name: String(item.product_name || item.supplier_product_name || '상품명 미제공'),
+      option_label: optionLabel(opt).slice(0, 240),
+      quantity: Math.max(0, Number(item.quantity) || 0),
+      order_item_code: item.order_item_code || null,
+      order_status: item.order_status || null
+    };
+  });
+}
+async function exploreOrders(url, env) {
+  const days = safeInt(url.searchParams.get('days'), 30, 1, 30);
+  const offset = safeInt(url.searchParams.get('offset'), 0, 0, 5000);
+  const limit = safeInt(url.searchParams.get('limit'), 50, 1, 50);
+  const token = await currentToken(env);
+  const query = new URL(BASE + '/api/v2/admin/orders');
+  query.searchParams.set('start_date', kstDay(Date.now() - days * 86400000));
+  query.searchParams.set('end_date', kstDay(Date.now()));
+  query.searchParams.set('offset', String(offset));
+  query.searchParams.set('limit', String(limit));
+  query.searchParams.set('embed', 'buyer,items');
+  const response = await fetch(query, {
+    headers: { Authorization: 'Bearer ' + token, 'X-Cafe24-Api-Version': API_VERSION }
+  });
+  if (!response.ok) {
+    return respond({ error: '주문자·제품 조회 실패', http_status: response.status }, 502);
+  }
+  const payload = await response.json();
+  const list = Array.isArray(payload.orders) ? payload.orders : [];
+  const mapped = list.map(o => {
+    const buyer = Array.isArray(o.buyer) ? o.buyer[0] : o.buyer;
+    const items = normalizeOrderItems(o.items);
+    return {
+      order_id: o.order_id || '',
+      buyer_name: typeof buyer?.name === 'string' ? buyer.name.trim() : null,
+      order_date: o.order_date || '',
+      payment_status: o.paid ?? o.payment_status ?? null,
+      shipping_status: o.shipping_status ?? null,
+      canceled: o.canceled ?? null,
+      amount: amount(o.actual_order_amount),
+      items,
+      items_embedded: o.items !== undefined && o.items !== null
+    };
+  });
+  return respond({
+    days, limit, offset, count: mapped.length,
+    has_more: mapped.length === limit,
+    items_unavailable: mapped.some(x => !x.items_embedded),
+    checked_at: new Date().toISOString(),
+    orders: mapped
+  });
+}
+
 export default {
   async fetch(request, env) {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
@@ -227,6 +293,7 @@ export default {
         return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token), checked_at: new Date().toISOString() });
       }
       if (url.pathname === '/api/orders') return await orders(url, env);
+      if (url.pathname === '/api/order-explorer') return await exploreOrders(url, env);
       if (url.pathname === '/api/shipping-review') return await shippingReviewOrders(url, env);
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
