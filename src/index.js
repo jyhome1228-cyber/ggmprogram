@@ -116,7 +116,7 @@ export default {
       if (url.pathname === '/api/orders') return await orders(url, env);
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
-        if (!/^\\d{8}-\\d{7,9}$/.test(orderId || '')) return respond({ error: '올바른 주문번호가 아닙니다.' }, 400);
+        if (!/^\d{8}-\d{7,9}$/.test(orderId || '')) return respond({ error: '올바른 주문번호가 아닙니다.' }, 400);
         const token = await currentToken(env);
         const res = await fetch(BASE + '/api/v2/admin/orders/' + encodeURIComponent(orderId) + '/items?limit=100', {
           headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Cafe24-Api-Version': API_VERSION }
