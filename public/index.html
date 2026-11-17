@@ -37,7 +37,7 @@ h1{font-size:30px;letter-spacing:-1.3px;margin:0 0 10px;font-weight:800}p{margin
 .dialog-head h2{font-size:22px;letter-spacing:-.5px;margin:3px 0 10px}.dialog-head small{color:var(--muted)}
 .dialog-content{padding:14px 28px 26px;max-height:55vh;overflow:auto}.dialog-foot{padding:16px 28px;background:#f8fafc;color:#8997aa;font-size:11px}
 .item{padding:17px 0;border-bottom:1px solid var(--line)}.item:last-child{border-bottom:0}.item-title{font-weight:750;font-size:14px}.item-sub{margin-top:9px;color:#78879a;font-size:12px;line-height:1.8}.item-status{display:inline-block;margin-top:7px;font-size:11px;color:#496a9c;background:#edf3fb;padding:5px 9px;border-radius:5px}
-.checkfilter{display:inline-flex;gap:7px;align-items:center;color:#65748a;font-size:12px;white-space:nowrap}.checkfilter input{accent-color:#263c5f}.money-zero{color:#bc7147}.dialog-shipments{padding:0 28px 24px;color:#63748b;font-size:12px}.shipment{padding:9px 12px;background:#f5f7fa;border-radius:7px;margin-top:8px;line-height:1.65}.order-link{border:0;background:transparent;color:#213858;padding:0;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.checkfilter{display:inline-flex;gap:7px;align-items:center;color:#65748a;font-size:12px;white-space:nowrap}.checkfilter input{accent-color:#263c5f}.money-zero{color:#bc7147}.dialog-shipments{padding:0 28px 24px;color:#63748b;font-size:12px}.shipment{padding:9px 12px;background:#f5f7fa;border-radius:7px;margin-top:8px;line-height:1.65}.buyer-name{font-weight:650;color:#334155}.order-link{border:0;background:transparent;color:#213858;padding:0;font-size:12px;font-weight:750;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -63,12 +63,12 @@ h1{font-size:30px;letter-spacing:-1.3px;margin:0 0 10px;font-weight:800}p{margin
     </section>
     <section class="panel">
       <div class="panel-head"><div><h2>전체 주문 조회</h2><small id="caption">주문 데이터를 불러오는 중입니다.</small></div><span class="meta" id="updated">—</span></div>
-      <div class="filters"><input class="search" id="search" type="search" placeholder="주문번호 검색" aria-label="주문번호 검색"><select id="days" aria-label="조회 기간"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option></select><select id="pay" aria-label="결제 상태"><option value="">결제상태 전체</option><option value="T">결제완료(T)</option><option value="F">결제대기(F)</option><option value="M">부분결제(M)</option></select><select id="ship" aria-label="배송 상태"><option value="">배송상태 전체</option><option value="F">배송전</option><option value="M">배송중</option><option value="T">배송완료</option><option value="W">배송보류</option><option value="X">발주전</option><option value="unknown">미제공</option></select><label class="checkfilter"><input type="checkbox" id="zeroOnly"> 0원 주문만</label><button class="btn" id="csv">현재 목록 CSV 저장</button></div>
-      <div class="table-wrap"><table><thead><tr><th>주문번호</th><th>주문 일시</th><th>배송상태</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">조회 중입니다.</td></tr></tbody></table></div>
+      <div class="filters"><input class="search" id="search" type="search" placeholder="주문번호 또는 주문자명 검색" aria-label="주문번호 또는 주문자명 검색"><select id="days" aria-label="조회 기간"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option></select><select id="pay" aria-label="결제 상태"><option value="">결제상태 전체</option><option value="T">결제완료(T)</option><option value="F">결제대기(F)</option><option value="M">부분결제(M)</option></select><select id="ship" aria-label="배송 상태"><option value="">배송상태 전체</option><option value="F">배송전</option><option value="M">배송중</option><option value="T">배송완료</option><option value="W">배송보류</option><option value="X">발주전</option><option value="unknown">미제공</option></select><label class="checkfilter"><input type="checkbox" id="zeroOnly"> 0원 주문만</label><button class="btn" id="csv">현재 목록 CSV 저장</button></div>
+      <div class="table-wrap"><table><thead><tr><th>주문번호</th><th>주문자명</th><th>주문 일시</th><th>배송상태</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="rows"><tr><td colspan="6" class="empty">조회 중입니다.</td></tr></tbody></table></div>
       <div class="pagination"><span id="pageInfo" class="meta">—</span><div class="pages"><button id="prev" class="btn" disabled>이전</button><button id="next" class="btn" disabled>다음</button></div></div>
     </section>
     <div class="notice" id="notice">카페24의 기간 전체 주문 건수와 현재 페이지 통계를 구분합니다. 배송 누락은 아직 확정 판정하지 않으며 주문번호를 눌러 실제 송장을 확인할 수 있습니다.</div>
-    <footer>GGM OPS v0.3 · 실 주문 조회 전용 · 주문 수정 및 배송 처리 기능 없음</footer>
+    <footer>GGM OPS v0.4 · 실 주문 조회 전용 · 주문 수정 및 배송 처리 기능 없음</footer>
   </main>
 </div></div>
 <dialog id="orderDialog" aria-labelledby="dialogTitle">
@@ -91,14 +91,15 @@ const message = (text, error = false) => { byId('notice').textContent=text; byId
 function render() {
   const query=byId('search').value.trim().toLowerCase(), pay=byId('pay').value;
   const ship=byId('ship').value, zero=byId('zeroOnly').checked;
-  const view=state.orders.filter(o=>String(o.order_id).toLowerCase().includes(query) && (!pay||String(o.payment_status)===pay) && (!ship || (ship==='unknown'?!o.shipping_status:String(o.shipping_status)===ship)) && (!zero || Number(o.amount)===0));
+  const view=state.orders.filter(o=>(String(o.order_id).toLowerCase().includes(query) || String(o.buyer_name||'').toLowerCase().includes(query)) && (!pay||String(o.payment_status)===pay) && (!ship || (ship==='unknown'?!o.shipping_status:String(o.shipping_status)===ship)) && (!zero || Number(o.amount)===0));
   const body=byId('rows'); body.replaceChildren();
-  if(!view.length){ const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.className='empty';td.textContent=state.orders.length?'필터 조건에 맞는 주문이 없습니다.':'해당 기간에 조회된 주문이 없습니다.';tr.append(td);body.append(tr); }
+  if(!view.length){ const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=6;td.className='empty';td.textContent=state.orders.length?'필터 조건에 맞는 주문이 없습니다.':'해당 기간에 조회된 주문이 없습니다.';tr.append(td);body.append(tr); }
   view.forEach(o=>{
     const tr=document.createElement('tr');
     const td=document.createElement('td'), btn=document.createElement('button');
     btn.type='button';btn.className='order-link';btn.textContent=o.order_id;btn.addEventListener('click',()=>openOrder(o));
     td.append(btn);tr.append(td);
+    cell(tr,o.buyer_name || '미제공','buyer-name');
     cell(tr,date(o.order_date));cell(tr,shippingName(o.shipping_status));cell(tr,payName(o.payment_status));cell(tr,fmt(o.amount),Number(o.amount)===0?'money money-zero':'money');body.append(tr);
   });
   byId('metricCount').textContent=Number.isInteger(state.totalCount)?String(state.totalCount):'—';
@@ -115,7 +116,7 @@ function render() {
 async function openOrder(order) {
   const dlg=byId('orderDialog');
   byId('dialogTitle').textContent='주문 '+order.order_id;
-  byId('dialogDate').textContent=date(order.order_date)+' · '+payName(order.payment_status)+' · '+fmt(order.amount);
+  byId('dialogDate').textContent='주문자 '+(order.buyer_name||'미제공')+' · '+date(order.order_date)+' · '+payName(order.payment_status)+' · '+fmt(order.amount);
   byId('dialogContents').textContent='상품·배송 정보를 불러오는 중입니다.';
   byId('shipmentContents').replaceChildren();
   dlg.showModal();
@@ -167,7 +168,7 @@ byId('refresh').addEventListener('click',()=>{status();load();});
 byId('prev').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);load();});
 byId('next').addEventListener('click',()=>{state.offset+=state.limit;load();});
 byId('reconnect').addEventListener('click',()=>{window.location.assign('/oauth/start');});
-byId('csv').addEventListener('click',()=>{const view=render();const list=[['주문번호','주문일시','주문상태','결제상태','금액'],...view.map(o=>[o.order_id,o.order_date,o.order_status,o.payment_status,o.amount])];const safe=v=>{const s=String(v??'');return '"'+(/^[=+@-]/.test(s)?'\t':'')+s.replace(/"/g,'""')+'"';};const data='\uFEFF'+list.map(row=>row.map(safe).join(',')).join('\r\n');const blob=new Blob([data],{type:'text/csv;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download='ggm-orders-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(href);});
+byId('csv').addEventListener('click',()=>{const view=render();const list=[['주문번호','주문자명','주문일시','배송상태','결제상태','금액'],...view.map(o=>[o.order_id,o.buyer_name||'',o.order_date,o.shipping_status,o.payment_status,o.amount])];const safe=v=>{const s=String(v??'');return '"'+(/^[=+@-]/.test(s)?'\t':'')+s.replace(/"/g,'""')+'"';};const data='\uFEFF'+list.map(row=>row.map(safe).join(',')).join('\r\n');const blob=new Blob([data],{type:'text/csv;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download='ggm-orders-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(href);});
 status();load();
 })();
 </script>
