@@ -1,0 +1,63 @@
+name: Deploy GGM OPS to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ggm-ops-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate and deploy ggm-ops
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate Worker JavaScript
+        run: npm run check
+
+      - name: Validate Worker assets
+        run: |
+          test -s public/index.html
+          test -s wrangler.jsonc
+          node -e "const c=JSON.parse(require('fs').readFileSync('wrangler.jsonc','utf8'));if(c.name!=='ggm-ops'||c.assets?.directory!=='./public'||c.kv_namespaces?.[0]?.binding!=='GGM_AUTH')process.exit(1)"
+
+      - name: Check Cloudflare deployment credentials
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "::error::GitHub Settings > Secrets and variables > Actions 에 CLOUDFLARE_API_TOKEN 및 CLOUDFLARE_ACCOUNT_ID를 먼저 등록해야 합니다."
+            exit 1
+          fi
+
+      - name: Deploy existing ggm-ops Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
+
+      - name: Deployment summary
+        run: |
+          echo "## GGM OPS production deploy completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Worker: ggm-ops" >> "$GITHUB_STEP_SUMMARY"
+          echo "URL: https://ggm-ops.planus253.workers.dev/" >> "$GITHUB_STEP_SUMMARY"
+          echo "Confirm Cloudflare Access, GGM_AUTH and CAFE24_CLIENT_* bindings in the Cloudflare dashboard." >> "$GITHUB_STEP_SUMMARY"
