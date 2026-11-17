@@ -301,6 +301,41 @@ async function exploreOrders(url, env) {
   });
 }
 
+
+async function catalogProducts(url, env) {
+  const limit = safeInt(url.searchParams.get('limit'), 50, 1, 100);
+  const offset = safeInt(url.searchParams.get('offset'), 0, 0, 5000);
+  const token = await currentToken(env);
+  const query = new URL(BASE + '/api/v2/admin/products');
+  query.searchParams.set('limit', String(limit));
+  query.searchParams.set('offset', String(offset));
+  query.searchParams.set('fields', 'product_no,product_code,product_name,price,display,selling');
+  const response = await fetch(query, {
+    headers: { Authorization: 'Bearer ' + token, 'X-Cafe24-Api-Version': API_VERSION }
+  });
+  if (response.status === 401 || response.status === 403) {
+    return respond({
+      error: '상품 조회 권한이 없습니다. 카페24 앱의 상품 읽기 권한을 확인한 후 GGM OPS의 카페24 재연결을 진행해주세요.',
+      http_status: response.status,
+      authorization_required: true
+    }, 403);
+  }
+  if (!response.ok) return respond({ error: '카페24 상품목록 조회에 실패했습니다.', http_status: response.status }, 502);
+  const data = await response.json();
+  const list = Array.isArray(data.products) ? data.products : [];
+  return respond({
+    limit, offset, count: list.length, has_more: list.length === limit,
+    products: list.map(p => ({
+      product_no: p.product_no == null ? null : String(p.product_no),
+      product_name: typeof p.product_name === 'string' ? p.product_name.replace(/<[^>]*>/g, '').trim() : '상품명 미제공',
+      product_code: p.product_code || '',
+      price: p.price == null ? null : String(p.price),
+      display: p.display ?? null,
+      selling: p.selling ?? null
+    }))
+  });
+}
+
 export default {
   async fetch(request, env) {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
@@ -315,6 +350,7 @@ export default {
       }
       if (url.pathname === '/api/orders') return await orders(url, env);
       if (url.pathname === '/api/order-explorer') return await exploreOrders(url, env);
+      if (url.pathname === '/api/products') return await catalogProducts(url, env);
       if (url.pathname === '/api/shipping-review') return await shippingReviewOrders(url, env);
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
@@ -360,7 +396,7 @@ export default {
         dest.searchParams.set('client_id', env.CAFE24_CLIENT_ID);
         dest.searchParams.set('state', state);
         dest.searchParams.set('redirect_uri', REDIRECT_URI);
-        dest.searchParams.set('scope', 'mall.read_order');
+        dest.searchParams.set('scope', 'mall.read_order,mall.read_product');
         return redirect(dest.toString(), { 'Set-Cookie': 'ggm_oauth=' + state + '; Max-Age=300; Path=/oauth; HttpOnly; Secure; SameSite=Lax' });
       }
       if (url.pathname === '/oauth/callback') {
