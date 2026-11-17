@@ -239,12 +239,33 @@ function normalizeOrderItems(raw) {
 }
 async function exploreOrders(url, env) {
   const days = safeInt(url.searchParams.get('days'), 30, 1, 30);
+  const startParam = url.searchParams.get('start_date');
+  const endParam = url.searchParams.get('end_date');
+  const today = kstDay(Date.now());
+  let startDate = kstDay(Date.now() - (days - 1) * 86400000);
+  let endDate = today;
+  if (startParam !== null || endParam !== null) {
+    if (!startParam || !endParam || !/^\d{4}-\d{2}-\d{2}$/.test(startParam) || !/^\d{4}-\d{2}-\d{2}$/.test(endParam)) {
+      return respond({ error: '시작일과 종료일을 YYYY-MM-DD 형식으로 입력해주세요.' }, 400);
+    }
+    const startMs = Date.parse(startParam + 'T00:00:00Z');
+    const endMs = Date.parse(endParam + 'T00:00:00Z');
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) ||
+        new Date(startMs).toISOString().slice(0, 10) !== startParam ||
+        new Date(endMs).toISOString().slice(0, 10) !== endParam ||
+        startMs > endMs || (endMs - startMs) / 86400000 > 29 ||
+        endParam > today || startMs < Date.now() - 366 * 86400000) {
+      return respond({ error: '조회기간은 과거 1년 이내, 최대 30일이며 종료일은 오늘을 넘을 수 없습니다.' }, 400);
+    }
+    startDate = startParam;
+    endDate = endParam;
+  }
   const offset = safeInt(url.searchParams.get('offset'), 0, 0, 5000);
   const limit = safeInt(url.searchParams.get('limit'), 50, 1, 50);
   const token = await currentToken(env);
   const query = new URL(BASE + '/api/v2/admin/orders');
-  query.searchParams.set('start_date', kstDay(Date.now() - days * 86400000));
-  query.searchParams.set('end_date', kstDay(Date.now()));
+  query.searchParams.set('start_date', startDate);
+  query.searchParams.set('end_date', endDate);
   query.searchParams.set('offset', String(offset));
   query.searchParams.set('limit', String(limit));
   query.searchParams.set('embed', 'buyer,items');
@@ -272,7 +293,7 @@ async function exploreOrders(url, env) {
     };
   });
   return respond({
-    days, limit, offset, count: mapped.length,
+    days, start_date: startDate, end_date: endDate, limit, offset, count: mapped.length,
     has_more: mapped.length === limit,
     items_unavailable: mapped.some(x => !x.items_embedded),
     checked_at: new Date().toISOString(),
