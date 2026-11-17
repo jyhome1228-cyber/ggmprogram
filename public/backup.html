@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>건강미 GGM OPS | 배송 데이터 백업</title><link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
+<style>
+:root{--brand:#667f89;--ink:#263e47;--line:#e2e9eb;--bg:#f7f9f9;--muted:#7a9098}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}.layout{min-height:100vh;display:flex}
+.side{width:232px;flex-shrink:0;background:#f0f5f5;border-right:1px solid var(--line);padding:26px 13px}
+.brand{padding:0 5px 29px}.lockup{display:flex;align-items:center;gap:8px}.mark{width:42px;height:67px;object-fit:contain}.wordmark{width:129px;height:33px;object-fit:contain}
+.brand small{display:block;margin-top:12px;font-size:10px;font-weight:750;color:#8099a0;letter-spacing:.8px}
+.side a{display:block;padding:12px;color:#5b747d;text-decoration:none;border-radius:8px;font-weight:650;margin:3px 0}.side a.active{background:#dce9ea;color:#34535d}
+.main{min-width:0;flex:1}.top{padding:22px 36px;background:#fff;border-bottom:1px solid var(--line);color:#8b9ba1;font-size:12px}
+.content{max-width:1320px;margin:auto;padding:38px 35px 70px}.eyebrow{font-size:11px;letter-spacing:1.4px;font-weight:800;color:#75909a}
+h1{font-size:30px;margin:5px 0;letter-spacing:-.6px}h2{font-size:18px;margin:0 0 8px}p{color:#81939a;margin:0}
+.panel{background:#fff;border:1px solid var(--line);border-radius:13px;padding:24px;margin-top:20px}
+.form{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-top:22px}.form label{font-size:12px;color:#748991;font-weight:650;display:flex;flex-direction:column;gap:6px}
+.form input,.form select{border:1px solid #dce7e8;border-radius:8px;min-height:40px;padding:8px 11px;color:#324b55;background:white}
+.btn{background:#fff;color:#45626d;border:1px solid #d9e4e7;border-radius:8px;padding:10px 15px;font-size:12px;font-weight:750;min-height:40px}.btn.primary{background:var(--brand);border-color:var(--brand);color:white}.btn:disabled{opacity:.45;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:19px 0}.stat{border:1px solid var(--line);border-radius:11px;background:white;padding:21px}
+.stat .label{color:#7c929b;font-size:12px}.stat .val{font-size:26px;font-weight:800;margin-top:7px}
+.progress{height:9px;background:#e3ebed;border-radius:10px;overflow:hidden;margin:15px 0 7px}.fill{height:100%;width:0;background:var(--brand);transition:width .25s}
+.status{font-size:12px;color:#6c8790;line-height:1.8}.status.error{color:#b35a50}
+.notice{margin-top:18px;background:#eef4f4;border:1px solid #dce8e9;padding:16px 18px;border-radius:10px;font-size:12px;color:#5d7982;line-height:1.9}
+.emph{font-weight:800;color:#4a6d79}.loader{width:18px;height:18px;border:3px solid #dfebec;border-top-color:#667f89;border-radius:50%;display:inline-block;vertical-align:middle;animation:spin .75s linear infinite;margin-right:8px}.loader[hidden]{display:none}@keyframes spin{to{transform:rotate(360deg)}}
+.backup-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+@media(max-width:880px){.side{width:76px;padding:18px 7px}.wordmark,.brand small{display:none}.mark{width:40px;height:56px}.side a{font-size:11px;padding:12px 7px}.content{padding:24px 17px}.top{padding:22px 17px}}
+@media(max-width:520px){.side{width:55px}.mark{width:31px;height:44px}.side a{font-size:9px}.stats{grid-template-columns:repeat(2,1fr)}.stat{padding:14px}.stat .val{font-size:21px}.panel{padding:15px}}
+</style></head><body>
+<div class="layout"><aside class="side"><div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
+<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/shipping.html">배송 점검</a><a href="/backup.html" class="active">배송 데이터 백업</a></aside>
+<div class="main"><div class="top">건강미 운영센터 / 배송 데이터 백업 · CAFE24 ggmspa</div><main class="content">
+<div class="eyebrow">SECURE DATA EXPORT</div><h1>전체 배송 데이터 백업</h1><p>선택한 기간의 모든 주문과 등록된 배송·송장정보를 순차 조회해 엑셀용 CSV 파일로 저장합니다.</p>
+<section class="panel"><h2>백업 기간 설정</h2><p>기본 최근 3개월 · 과거 자료는 시작일을 변경해 조회할 수 있습니다.</p>
+<div class="form"><label>빠른 선택<select id="preset"><option value="90">최근 3개월 (90일)</option><option value="30">최근 30일</option><option value="180">최근 6개월</option><option value="365">최근 1년</option><option value="custom">직접 선택</option></select></label>
+<label>시작일<input id="from" type="date"></label><label>종료일<input id="to" type="date"></label>
+<button id="start" class="btn primary">배송 데이터 백업 시작</button><button id="stop" class="btn" disabled>중단</button></div>
+<div class="backup-actions"><button id="download" class="btn" disabled>백업 CSV 내려받기</button><span id="notice" class="status" role="status" aria-live="polite">기간을 선택한 뒤 백업을 시작하세요.</span></div>
+<div class="progress"><div class="fill" id="fill"></div></div><div id="progressText" class="status">백업 대기 중</div></section>
+<div class="stats"><div class="stat"><div class="label">확인한 주문</div><div id="total" class="val">0</div></div><div class="stat"><div class="label">배송기록 수</div><div id="shipCount" class="val">0</div></div><div class="stat"><div class="label">조회 실패 주문</div><div id="failed" class="val">0</div></div></div>
+<div class="notice"><strong>백업 범위 및 보안</strong>
+데이터는 Cloudflare Access 인증을 통과한 관리자 브라우저에서만 다운로드합니다. 주문번호, 주문일, 주문자, 수령자, 배송지·연락처, 택배사, 송장번호, 송장 입력일, 배송상태 등을 포함할 수 있으므로 내려받은 파일은 안전한 장소에 보관하세요.
+모든 기록이 조회되어야만 <span class="emph">완료</span>로 표시하며, 도중에 중단되거나 API 오류·호출 제한이 발생하면 <span class="emph">부분 백업</span>으로 표시합니다. 한 요청은 주문 최대 8건·30일 이하 구간만 처리합니다. 과거 데이터가 많으면 시간이 걸리거나 세션 만료로 중단될 수 있습니다. 새로고침하면 현재 수집 중인 데이터는 사라집니다.</div>
+</main></div></div>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id),DAY=86400000,LIMIT=8;
+const state={rows:[],orders:0,ships:0,failures:0,busy:false,complete:false,reason:'',controller:null,range:null,finished:0,totalSlices:0};
+const dayKST=t=>new Date(t+9*3600000).toISOString().slice(0,10);
+const iso=ms=>new Date(ms).toISOString().slice(0,10);
+function setPreset(){
+ const count=Number($('preset').value);if(!count)return;
+ const now=Date.now();$('from').value=dayKST(now-(count-1)*DAY);$('to').value=dayKST(now);
+}
+function range(){
+ const start=$('from').value,end=$('to').value;
+ if(!start||!end||start>end)throw Error('시작일과 종료일을 확인해주세요.');
+ const a=Date.parse(start+'T00:00:00Z'),b=Date.parse(end+'T00:00:00Z');
+ if(!Number.isFinite(a)||!Number.isFinite(b)||iso(a)!==start||iso(b)!==end)throw Error('날짜 형식이 잘못되었습니다.');
+ if(start<'2010-01-01'||end>dayKST(Date.now()))throw Error('조회 가능한 날짜 범위를 확인해주세요.');
+ return {start,end};
+}
+function segments(start,end){
+ const begin=Date.parse(start+'T00:00:00Z'),last=Date.parse(end+'T00:00:00Z'),parts=[];
+ for(let cursor=begin;cursor<=last;cursor+=30*DAY){
+   parts.push({start:iso(cursor),end:iso(Math.min(last,cursor+29*DAY))});
+ }
+ return parts;
+}
+function setBusy(v){
+ state.busy=v;
+ for(const id of ['start','from','to','preset'])$(id).disabled=v;
+ $('stop').disabled=!v;$('download').disabled=v||!state.rows.length;
+}
+function progress(){
+ $('total').textContent=state.orders.toLocaleString('ko-KR');
+ $('shipCount').textContent=state.ships.toLocaleString('ko-KR');
+ $('failed').textContent=state.failures.toLocaleString('ko-KR');
+ const proportion=state.totalSlices?Math.min(100,state.finished/state.totalSlices*100):0;
+ $('fill').style.width=proportion+'%';
+ $('progressText').textContent='완료한 구간 '+state.finished+' / '+state.totalSlices+' · 수집 주문 '+state.orders+'건 · '+(state.reason||'조회 중');
+}
+async function getBatch(section,offset,signal){
+ const q=new URLSearchParams({start_date:section.start,end_date:section.end,limit:String(LIMIT),offset:String(offset)});
+ for(let attempt=0;attempt<3;attempt++){
+   const response=await fetch('/api/backup/shipping?'+q,{cache:'no-store',credentials:'same-origin',signal});
+   let data={};try{data=await response.json()}catch{throw Error('백업 서버 응답 형식 오류 (HTTP '+response.status+')')}
+   if(response.ok){if(!Array.isArray(data.orders))throw Error('백업 응답에서 주문 목록을 찾지 못했습니다.');return data}
+   const status=Number(data.http_status||response.status);
+   if((status===429||status===503)&&attempt<2){await new Promise(resolve=>setTimeout(resolve,(attempt+1)*1600));continue}
+   throw Error(data.error||'백업 API 오류 '+status);
+ }
+}
+async function startBackup(){
+ if(state.busy)return;
+ let chosen;try{chosen=range()}catch(e){$('notice').textContent=e.message;$('notice').className='status error';return}
+ state.rows=[];state.orders=0;state.ships=0;state.failures=0;state.complete=false;state.reason='';state.finished=0;state.range=chosen;
+ const parts=segments(chosen.start,chosen.end);state.totalSlices=parts.length;
+ state.controller=new AbortController();setBusy(true);progress();
+ $('notice').textContent='카페24 배송정보 조회 중…';$('notice').className='status';
+ try{
+   for(const section of parts){
+     let offset=0,done=false;
+     while(!done){
+       if(state.controller.signal.aborted)throw Error('사용자가 백업을 중단했습니다.');
+       if(offset>5000)throw Error(section.start+'~'+section.end+' 5000건 초과 · 기간을 더 작게 나눠 백업해주세요.');
+       const data=await getBatch(section,offset,state.controller.signal);
+       for(const order of data.orders){
+         state.orders++;
+         if(order.shipping_error)state.failures++;
+         const shipments=order.shipments?.length?order.shipments:[null];
+         state.ships+=order.shipments?.length||0;
+         for(const item of shipments){
+           state.rows.push({
+             order_id:order.order_id,order_date:order.order_date,buyer:order.buyer_name,
+             paid:order.payment_status,shipping_status:order.shipping_status,canceled:order.canceled,
+             recipient:(order.receivers||[]).map(v=>v.name||'').filter(Boolean).join(' / '),
+             recipient_phone:(order.receivers||[]).map(v=>v.cellphone||'').filter(Boolean).join(' / '),
+             zipcode:(order.receivers||[]).map(v=>v.zipcode||'').filter(Boolean).join(' / '),
+             address:(order.receivers||[]).map(v=>[v.address1,v.address2].filter(Boolean).join(' ')).filter(Boolean).join(' / '),
+             shipping_code:item?.shipping_code,carrier:item?.shipping_company_code,carrier_name:item?.shipping_company_name,
+             tracking:item?.tracking_no,tracking_date:item?.tracking_no_updated_date,shipment_status:item?.status,
+             shipment_item_codes:(item?.order_item_codes||[]).join(' / '),
+             error:order.shipping_error
+           });
+         }
+       }
+       offset+=data.orders.length;
+       done=!data.has_more||data.orders.length===0;
+       progress();$('notice').textContent=section.start+' ~ '+section.end+' · '+state.orders+'건 주문 확인';
+       if(!done)await new Promise(resolve=>setTimeout(resolve,900));
+     }
+     state.finished++;progress();
+   }
+   state.complete=state.failures===0;
+   if(!state.complete)state.reason='일부 주문의 배송정보 조회 실패 · 부분 백업';
+ }catch(e){state.reason=state.controller?.signal.aborted?'사용자 중단':String(e.message||e);state.complete=false}
+ finally{
+   setBusy(false);state.controller=null;
+   $('notice').textContent=(state.complete?'백업 완료':'부분 백업')+' · 주문 '+state.orders+'건 · 배송기록 '+state.ships+'개'+(state.reason?' · '+state.reason:'');
+   $('notice').className='status'+(state.complete?'':' error');
+   progress();$('download').disabled=!state.rows.length;
+ }
+}
+function quote(v){
+ const raw=String(v??'');
+ const safe=/^[=+@\-\t\r]/.test(raw)?'\t'+raw:raw;
+ return '"'+safe.replace(/"/g,'""')+'"';
+}
+function download(){
+ if(!state.rows.length)return;
+ const labels=['주문번호','주문일','주문자','결제상태','주문 배송상태','취소여부','수령자','수령자 전화','우편번호','배송지','배송번호','택배사 코드','택배사','송장번호','송장 입력일','배송 진행상태','배송품목코드','조회오류'];
+ const rows=[
+  ['백업 상태',state.complete?'완료':'부분 백업'],
+  ['백업 시작일',state.range?.start||''],['백업 종료일',state.range?.end||''],
+  ['백업 실행일시',new Date().toISOString()],['백업 확인 주문수',state.orders],
+  ['배송정보 조회 실패 주문수',state.failures],
+  ['중단·오류사유',state.reason||''],
+  labels,
+  ...state.rows.map(x=>[x.order_id,x.order_date,x.buyer,x.paid,x.shipping_status,x.canceled,
+   x.recipient,x.recipient_phone,x.zipcode,x.address,x.shipping_code,x.carrier,x.carrier_name,
+   x.tracking,x.tracking_date,x.shipment_status,x.shipment_item_codes,x.error])
+ ];
+ const text='\uFEFF'+rows.map(r=>r.map(quote).join(',')).join('\r\n');
+ const blob=new Blob([text],{type:'text/csv;charset=utf-8'});
+ const uri=URL.createObjectURL(blob),a=document.createElement('a');a.href=uri;
+ a.download='ggm-shipping-'+state.range.start+'_'+state.range.end+(state.complete?'':'-PARTIAL')+'.csv';a.click();
+ setTimeout(()=>URL.revokeObjectURL(uri),1000);
+}
+$('preset').addEventListener('change',setPreset);
+for(const id of ['from','to'])$(id).addEventListener('change',()=>{$('preset').value='custom'});
+$('start').addEventListener('click',startBackup);
+$('stop').addEventListener('click',()=>state.controller?.abort());
+$('download').addEventListener('click',download);
+const today=dayKST(Date.now());$('from').max=today;$('to').max=today;setPreset();setBusy(false);
+})();
+</script></body></html>
