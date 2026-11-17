@@ -58,7 +58,7 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 'use strict';
 const $=id=>document.getElementById(id);
 const MAX_ORDERS=500;
-const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0};
+const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0,matches:[],lastComplete:false,lastRange:null};
 const fmt=x=>x==null?'—':Number.isFinite(Number(x))?Number(x).toLocaleString('ko-KR')+'원':'—';
 const kstDay=t=>new Date(t+9*3600000).toISOString().slice(0,10);
 function td(row,value,cls){const el=document.createElement('td');el.textContent=value??'—';if(cls)el.className=cls;row.append(el);return el}
@@ -93,6 +93,12 @@ async function loadCatalog(reset=false){
    $('catalogStatus').textContent='상품 '+state.products.length+'개 불러옴'+(state.more?' · 추가 상품 있음':'');
  }catch(e){
    $('catalogStatus').textContent='상품조회 오류: '+errorMessage(e);
+   if(state.products.length===0 && /상품 조회 권한/.test(errorMessage(e))) {
+     const tbody=$('products');tbody.replaceChildren();
+     const tr=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=3;
+     const link=document.createElement('a');link.href='/oauth/start';link.className='product-btn';link.textContent='카페24 재연결 (상품 읽기 권한 승인)';
+     cell.append('상품 API 권한이 필요합니다. ',link);tr.append(cell);tbody.append(tr);
+   }
  }finally{state.loading=false;renderCatalog()}
 }
 function choiceMarkup(p){
@@ -113,11 +119,12 @@ function updateControls(container,run){
  const button=document.createElement('button');button.className='btn primary';button.textContent='이 상품 주문 조회';button.addEventListener('click',()=>scanOrders(run));row.append(button);
  const stop=document.createElement('button');stop.className='btn';stop.textContent='중단';stop.disabled=true;stop.id='orderStop';
  stop.addEventListener('click',()=>state.orderController?.abort());row.append(stop);
+ const exportButton=document.createElement('button');exportButton.className='btn';exportButton.id='exportOrders';exportButton.disabled=true;exportButton.textContent='이 상품 주문 엑셀 (CSV)';exportButton.addEventListener('click',exportSelectedOrders);row.append(exportButton);
  container.append(row);return {button,stop};
 }
 function chooseProduct(p){
  state.orderController?.abort();state.orderController=null;
- state.selected=p;const run=++state.run;
+ state.selected=p;state.matches=[];state.lastRange=null;state.lastComplete=false;const run=++state.run;
  renderCatalog();
  const root=$('details');root.replaceChildren();root.append(choiceMarkup(p));
  updateControls(root,run);
@@ -139,6 +146,8 @@ function dateRange(){
  return {start,end};
 }
 function renderResult(matches,complete,note){
+ state.matches=matches;state.lastComplete=complete;
+ const exportButton=$('exportOrders');if(exportButton)exportButton.disabled=!matches.length||Boolean(state.orderController);
  const summary=$('orderStats');summary.replaceChildren();
  const qty=matches.reduce((sum,row)=>sum+row.items.reduce((acc,item)=>acc+(Number(item.quantity)||0),0),0);
  for(const [label,value] of [['해당 상품 주문',new Set(matches.map(x=>x.order_id)).size+'건'],['주문 수량 합계',qty+'개']]){
@@ -160,7 +169,7 @@ function renderResult(matches,complete,note){
 async function scanOrders(run){
  const p=state.selected;if(!p||run!==state.run)return;
  let range;try{range=dateRange()}catch(e){const status=$('orderDetailsStatus');status.textContent=e.message;status.className='status error';return}
- state.orderController?.abort();const ctrl=new AbortController();state.orderController=ctrl;
+ state.orderController?.abort();const ctrl=new AbortController();state.orderController=ctrl;state.lastRange=range;
  const button=$('startDate').closest('.datebar').querySelector('button'),stop=$('orderStop');
  button.disabled=true;stop.disabled=false;
  const status=$('orderDetailsStatus');status.className='status';status.textContent='카페24 주문 조회 중 (최대 500건 대조)';
@@ -192,8 +201,30 @@ async function scanOrders(run){
      status.textContent=(complete?'선택 기간 조회 완료':'부분 조회')+' · 총 '+offset+'건 확인 · 상품 주문 '+matched.size+'건'+(reason?' · '+reason:'');
      status.className='status'+(reason?' error':'');
      renderResult([...matched.values()],complete,reason);
+     $('exportOrders').disabled=!matched.size;
    }
  }
+}
+function escapeCSV(value){
+ const str=String(value??'');const protectedValue=/^[=+@\-\t\r]/.test(str)?'\t'+str:str;
+ return '"'+protectedValue.replace(/"/g,'""')+'"';
+}
+function exportSelectedOrders(){
+ if(!state.selected||!state.matches.length)return;
+ const rows=[
+ ['상품번호',state.selected.product_no||''],
+ ['상품명',state.selected.product_name],
+ ['조회 시작일',state.lastRange?.start||''],
+ ['조회 종료일',state.lastRange?.end||''],
+ ['조회 범위',state.lastComplete?'선택기간 전체':'부분 조회'],
+ ['주문번호','주문자','주문일시','상품번호','상품명','옵션','수량','주문결제상태'],
+ ...state.matches.flatMap(m=>m.items.map(item=>[m.order_id,m.buyer_name||'',m.order_date,item.product_no,item.product_name,item.option_label,item.quantity,m.payment_status||'']))
+ ];
+ const content='\uFEFF'+rows.map(row=>row.map(escapeCSV).join(',')).join('\r\n');
+ const blob=new Blob([content],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=url;link.download='ggm-product-'+state.selected.product_no+'-'+kstDay(Date.now())+'.csv';
+ link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 $('search').addEventListener('input',renderCatalog);
 $('reload').addEventListener('click',()=>loadCatalog(true));
