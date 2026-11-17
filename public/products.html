@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>건강미 GGM OPS | 상품 목록</title><link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
+<style>
+:root{--brand:#667f89;--ink:#253d46;--muted:#72878f;--line:#e1e9eb;--bg:#f7f9f9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}.layout{display:flex;min-height:100vh}
+.sidebar{width:235px;min-width:235px;background:#eff5f5;border-right:1px solid var(--line);padding:27px 13px}
+.brand{padding:0 5px 30px}.lockup{display:flex;align-items:center;gap:8px}.mark{width:42px;height:67px;object-fit:contain}.wordmark{width:130px;height:33px;object-fit:contain}
+.brand small{display:block;font-size:10px;letter-spacing:.8px;color:#879ba3;font-weight:750;margin-top:12px}
+.sidebar a{display:block;text-decoration:none;color:#5d7780;padding:12px;border-radius:8px;font-weight:650;margin:3px 0}.sidebar a.active{background:#dce9ea;color:#34535c}
+.main{flex:1;min-width:0}.top{height:65px;border-bottom:1px solid var(--line);background:#fff;padding:23px 35px;font-size:12px;color:#85969c}
+.content{max-width:1500px;margin:auto;padding:37px 35px 70px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:15px;flex-wrap:wrap}.eyebrow{font-size:11px;color:#799099;font-weight:800;letter-spacing:1.3px}
+h1{margin:7px 0 7px;letter-spacing:-.9px;font-size:29px}h2{margin:0;font-size:17px}p{margin:0;color:#819198}
+.btn{border:1px solid #dce5e7;color:#4c6974;background:white;min-height:39px;padding:9px 14px;border-radius:8px;font-weight:750;font-size:12px}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn:disabled{opacity:.45;cursor:default}
+.panel{border:1px solid var(--line);border-radius:13px;background:white;margin-top:19px;overflow:hidden}
+.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:20px 22px;border-bottom:1px solid var(--line)}
+.search,select,input[type=date]{border:1px solid #d9e4e6;border-radius:8px;min-height:39px;padding:8px 11px;color:#3b5863;background:#fff}
+.search{width:min(350px,100%)}.meta{font-size:12px;color:#81939b}.spacer{flex:1}
+.split{display:grid;grid-template-columns: minmax(350px, .9fr) minmax(500px,1.1fr);min-height:590px}
+.catalog{border-right:1px solid var(--line)}.subhead{padding:18px 23px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tablewrap{overflow:auto;max-height:650px}table{width:100%;border-collapse:collapse;white-space:nowrap}th{background:#f8fafa;color:#778b93;text-align:left;font-size:11px;padding:13px 16px}td{font-size:12px;padding:13px 16px;border-bottom:1px solid #edf1f2}tbody tr:last-child td{border-bottom:0}
+tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:left;color:#3b606b;font-weight:700;cursor:pointer;padding:0;white-space:normal;overflow-wrap:anywhere;line-height:1.5}.product-btn:hover{text-decoration:underline}
+.details{min-width:0}.detail-content{padding:23px}.chosen{padding:17px;background:#f4f8f8;border-radius:10px;margin-bottom:15px}
+.chosen-title{font-size:17px;font-weight:750;margin-bottom:8px}.small{color:#7a8d95;font-size:12px}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:15px 0}
+.stat{padding:16px;border-radius:9px;border:1px solid #e5ebed}.stat .label{color:#81949b;font-size:11px}.stat .value{font-size:23px;font-weight:800;margin-top:5px}
+.options{margin:12px 0 16px}.option-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0;border-bottom:1px solid #eaf0f0}.option-row span:first-child{overflow-wrap:anywhere}
+.note{padding:15px 18px;border-radius:9px;border:1px solid #dbe6e8;background:#edf4f4;color:#617e87;font-size:12px;line-height:1.8;margin-top:19px}
+.empty{padding:45px 20px;text-align:center;color:#8a9ba2;line-height:1.8}
+.datebar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:15px 0}.datebar label{font-size:11px;color:#7c9097}
+.order-list{max-height:355px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.order-entry{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;padding:13px 15px;border-bottom:1px solid #edf1f2}
+.order-entry:last-child{border-bottom:0}.order-code{font-weight:750;color:#4c6d79}.order-extra{font-size:11px;color:#84949a;margin-top:4px}
+.status{font-size:12px;color:#71858e;margin-top:9px}.status.error{color:#af574e}
+.loader{display:inline-block;width:17px;height:17px;border:2px solid #d7e5e7;border-top-color:#667f89;border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px}@keyframes spin{to{transform:rotate(360deg)}}
+.progress{height:6px;background:#e5eded;border-radius:8px;overflow:hidden;margin:10px 0}.progress .fill{background:#667f89;height:100%;width:0%;transition:width .2s}
+.footerrow{padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line)}
+.alert{font-size:12px;color:#9e672d;line-height:1.8}
+@media(max-width:1100px){.split{grid-template-columns:1fr}.catalog{border-right:0;border-bottom:1px solid var(--line)}.tablewrap{max-height:440px}.sidebar{width:78px;min-width:78px;padding:20px 7px}.wordmark,.brand small{display:none}.mark{width:38px;height:55px}.sidebar a{font-size:11px;padding:12px 7px}.content{padding:26px 20px}.top{padding:22px 20px}}
+@media(max-width:580px){.sidebar{width:55px;min-width:55px}.mark{width:30px;height:45px}.sidebar a{font-size:9px}.head{align-items:flex-start}.content{padding:20px 12px}.toolbar{padding:15px}.stats{gap:7px}.detail-content{padding:15px}.order-entry{grid-template-columns:1fr}.search{width:100%}}
+</style></head><body>
+<div class="layout"><aside class="sidebar">
+<div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
+<a href="/">주문 대시보드</a><a href="/products.html" class="active">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/shipping.html">배송 점검</a>
+</aside><div class="main"><div class="top">건강미 운영센터 / 상품 목록 · CAFE24 ggmspa</div>
+<main class="content"><div class="head"><div><div class="eyebrow">PRODUCT MANAGEMENT</div><h1>상품 목록 및 상품별 주문</h1><p>카페24에 등록된 상품을 선택하고, 선택 기간의 관련 주문을 확인합니다.</p></div><button id="reload" class="btn primary">상품목록 새로고침</button></div>
+<section class="panel"><div class="toolbar"><input id="search" class="search" type="search" placeholder="상품명·상품번호 검색" aria-label="상품명 또는 상품번호"><span id="catalogStatus" class="meta">상품목록을 불러오는 중입니다.</span><span class="spacer"></span><button id="catalogMore" class="btn" disabled>다음 상품 불러오기</button></div>
+<div class="split"><div class="catalog"><div class="subhead"><h2>카페24 등록 상품</h2><span id="catalogCount" class="meta">—</span></div><div class="tablewrap"><table><thead><tr><th>상품번호</th><th>상품명</th><th>판매가</th></tr></thead><tbody id="products"><tr><td colspan="3" class="empty">불러오는 중...</td></tr></tbody></table></div></div>
+<div class="details"><div class="subhead"><h2>상품별 주문조회</h2><span id="orderStatus" class="meta">상품을 선택해주세요.</span></div><div class="detail-content" id="details">
+<div class="empty">왼쪽 상품 목록에서 상품을 선택하면 주문 내역을 조회할 수 있어요.</div></div></div></div></section>
+<div class="note">상품 목록은 카페24 상품번호 기준으로 표시합니다. 주문 조회는 선택 기간의 최근 최대 500개 주문을 대조하는 읽기 전용 기능입니다. 전체 주문이 500건을 넘거나 요청이 실패하면 <strong>부분 조회</strong>로 표시합니다. 상품 수량은 주문상품 기준이며 취소·반품 차감 실적과 같지 않을 수 있습니다. 제품 정보와 고객 이름은 서버에 별도로 저장하지 않습니다.</div>
+</main></div></div>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id);
+const MAX_ORDERS=500;
+const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0};
+const fmt=x=>x==null?'—':Number.isFinite(Number(x))?Number(x).toLocaleString('ko-KR')+'원':'—';
+const kstDay=t=>new Date(t+9*3600000).toISOString().slice(0,10);
+function td(row,value,cls){const el=document.createElement('td');el.textContent=value??'—';if(cls)el.className=cls;row.append(el);return el}
+function empty(el,msg){el.replaceChildren();const div=document.createElement('div');div.className='empty';div.textContent=msg;el.append(div)}
+function errorMessage(err){return String(err?.message||'알 수 없는 오류')}
+function setCatalogControls(){ $('reload').disabled=state.loading;$('catalogMore').disabled=state.loading||!state.more; }
+function renderCatalog(){
+ const term=$('search').value.trim().toLocaleLowerCase('ko-KR');
+ const list=state.products.filter(x=>x.product_name.toLocaleLowerCase('ko-KR').includes(term)||String(x.product_no||'').includes(term));
+ const tbody=$('products');tbody.replaceChildren();
+ if(!list.length){const tr=document.createElement('tr');const cell=td(tr,state.products.length?'검색된 상품이 없습니다.':'불러온 상품이 없습니다.','empty');cell.colSpan=3;tbody.append(tr)}
+ for(const p of list){
+   const tr=document.createElement('tr');if(state.selected?.product_no===p.product_no)tr.className='selected';
+   td(tr,p.product_no||'—');
+   const name=document.createElement('td');const btn=document.createElement('button');btn.type='button';btn.className='product-btn';btn.textContent=p.product_name;btn.addEventListener('click',()=>chooseProduct(p));name.append(btn);tr.append(name);td(tr,fmt(p.price));tbody.append(tr);
+ }
+ $('catalogCount').textContent=state.products.length+'개 로드 · 현재 '+list.length+'개 표시';
+ setCatalogControls();
+}
+async function loadCatalog(reset=false){
+ if(state.loading)return;
+ if(reset){state.offset=0;state.more=false;state.products=[];}
+ state.loading=true;setCatalogControls();
+ $('catalogStatus').innerHTML='<span class="loader" aria-hidden="true"></span>카페24 상품 조회 중';
+ try{
+   const response=await fetch('/api/products?limit=100&offset='+state.offset,{credentials:'same-origin',cache:'no-store'});
+   const data=await response.json();
+   if(!response.ok)throw Error(data.error||'상품 조회 실패 ('+response.status+')');
+   if(!Array.isArray(data.products))throw Error('잘못된 상품 API 응답');
+   state.products.push(...data.products);
+   state.offset+=data.products.length;state.more=!!data.has_more&&state.offset<=5000;
+   $('catalogStatus').textContent='상품 '+state.products.length+'개 불러옴'+(state.more?' · 추가 상품 있음':'');
+ }catch(e){
+   $('catalogStatus').textContent='상품조회 오류: '+errorMessage(e);
+ }finally{state.loading=false;renderCatalog()}
+}
+function choiceMarkup(p){
+ const root=document.createElement('div');root.className='chosen';
+ const h=document.createElement('div');h.className='chosen-title';h.textContent=p.product_name;root.append(h);
+ const small=document.createElement('div');small.className='small';small.textContent='카페24 상품번호 '+p.product_no+' · 판매가 '+fmt(p.price);root.append(small);
+ return root;
+}
+function updateControls(container,run){
+ const row=document.createElement('div');row.className='datebar';
+ for(const [label,id] of [['시작일','startDate'],['종료일','endDate']]){
+  const l=document.createElement('label');l.textContent=label;
+  const input=document.createElement('input');input.type='date';input.id=id;input.max=kstDay(Date.now());
+  l.append(input);row.append(l);
+ }
+ const end=kstDay(Date.now()),start=kstDay(Date.now()-29*86400000);
+ row.querySelector('#startDate').value=start;row.querySelector('#endDate').value=end;
+ const button=document.createElement('button');button.className='btn primary';button.textContent='이 상품 주문 조회';button.addEventListener('click',()=>scanOrders(run));row.append(button);
+ const stop=document.createElement('button');stop.className='btn';stop.textContent='중단';stop.disabled=true;stop.id='orderStop';
+ stop.addEventListener('click',()=>state.orderController?.abort());row.append(stop);
+ container.append(row);return {button,stop};
+}
+function chooseProduct(p){
+ state.orderController?.abort();state.orderController=null;
+ state.selected=p;const run=++state.run;
+ renderCatalog();
+ const root=$('details');root.replaceChildren();root.append(choiceMarkup(p));
+ updateControls(root,run);
+ const progress=document.createElement('div');progress.className='progress';progress.innerHTML='<div class="fill" id="orderFill"></div>';root.append(progress);
+ const status=document.createElement('div');status.className='status';status.id='orderDetailsStatus';status.textContent='조회할 날짜를 확인한 후 이 상품 주문 조회를 눌러주세요.';root.append(status);
+ const summary=document.createElement('div');summary.className='stats';summary.id='orderStats';root.append(summary);
+ const opts=document.createElement('div');opts.id='orderOptions';opts.className='options';root.append(opts);
+ const list=document.createElement('div');list.id='orderList';list.className='order-list';empty(list,'조회 결과가 여기에 표시됩니다.');root.append(list);
+ $('orderStatus').textContent=p.product_no+'번 상품 선택';
+}
+function dateRange(){
+ const start=$('startDate').value,end=$('endDate').value;
+ if(!start||!end)throw Error('시작일·종료일을 모두 선택해주세요.');
+ if(start>end)throw Error('시작일이 종료일보다 늦습니다.');
+ const d1=Date.parse(start+'T00:00:00Z'),d2=Date.parse(end+'T00:00:00Z');
+ if(!Number.isFinite(d1)||!Number.isFinite(d2)||(d2-d1)/86400000>29)throw Error('조회 기간은 최대 30일입니다.');
+ if(end>kstDay(Date.now()))throw Error('종료일은 오늘 이후일 수 없습니다.');
+ if(d1<Date.now()-366*86400000)throw Error('최근 1년 이내의 기간만 조회할 수 있습니다.');
+ return {start,end};
+}
+function renderResult(matches,complete,note){
+ const summary=$('orderStats');summary.replaceChildren();
+ const qty=matches.reduce((sum,row)=>sum+row.items.reduce((acc,item)=>acc+(Number(item.quantity)||0),0),0);
+ for(const [label,value] of [['해당 상품 주문',new Set(matches.map(x=>x.order_id)).size+'건'],['주문 수량 합계',qty+'개']]){
+   const d=document.createElement('div');d.className='stat';const l=document.createElement('div');l.className='label';l.textContent=label;const n=document.createElement('div');n.className='value';n.textContent=value;d.append(l,n);summary.append(d);
+ }
+ const opts=new Map();
+ for(const m of matches)for(const it of m.items){const key=it.option_label||'옵션 없음';opts.set(key,(opts.get(key)||0)+(Number(it.quantity)||0))}
+ const optBox=$('orderOptions');optBox.replaceChildren();
+ for(const [name,count] of opts){const row=document.createElement('div');row.className='option-row';const a=document.createElement('span'),b=document.createElement('strong');a.textContent=name;b.textContent=count+'개';row.append(a,b);optBox.append(row)}
+ const list=$('orderList');list.replaceChildren();
+ if(!matches.length){empty(list,'해당 기간에 검색된 상품 주문이 없습니다. '+(!complete?'조회가 완전하지 않을 수 있습니다.':''));return}
+ for(const m of matches){
+   const row=document.createElement('div');row.className='order-entry';
+   const left=document.createElement('div');const n=document.createElement('div');n.className='order-code';n.textContent=m.order_id;const t=document.createElement('div');t.className='order-extra';t.textContent=(m.buyer_name||'주문자 미제공')+' · '+String(m.order_date||'').slice(0,19).replace('T',' ');left.append(n,t);
+   const right=document.createElement('div');right.className='small';right.textContent=m.items.map(it=>(it.option_label||'기본 구성')+' × '+it.quantity).join(' / ');
+   row.append(left,right);list.append(row);
+ }
+}
+async function scanOrders(run){
+ const p=state.selected;if(!p||run!==state.run)return;
+ let range;try{range=dateRange()}catch(e){const status=$('orderDetailsStatus');status.textContent=e.message;status.className='status error';return}
+ state.orderController?.abort();const ctrl=new AbortController();state.orderController=ctrl;
+ const button=$('startDate').closest('.datebar').querySelector('button'),stop=$('orderStop');
+ button.disabled=true;stop.disabled=false;
+ const status=$('orderDetailsStatus');status.className='status';status.textContent='카페24 주문 조회 중 (최대 500건 대조)';
+ let matched=new Map(),offset=0,complete=false,reason='';
+ try{
+  while(offset<MAX_ORDERS){
+    if(ctrl.signal.aborted)throw Error('사용자가 조회를 중단했습니다.');
+    const query=new URLSearchParams({start_date:range.start,end_date:range.end,offset:String(offset),limit:'50'});
+    const response=await fetch('/api/order-explorer?'+query,{credentials:'same-origin',cache:'no-store',signal:ctrl.signal});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(data.error||'카페24 주문조회 오류 '+response.status);
+    if(data.items_unavailable)throw Error('카페24 주문상품 데이터가 제공되지 않았습니다.');
+    for(const o of data.orders||[]){
+      const relevant=(o.items||[]).filter(it=>String(it.product_no||'')===String(p.product_no));
+      if(relevant.length)matched.set(o.order_id,{...o,items:relevant});
+    }
+    offset+=(data.orders||[]).length;
+    $('orderFill').style.width=Math.min(100,offset/MAX_ORDERS*100)+'%';
+    status.textContent=offset+'건 확인 · 일치 주문 '+matched.size+'건';
+    renderResult([...matched.values()],false,'조회 중');
+    if(!data.has_more || !(data.orders||[]).length){complete=true;break}
+    if(offset>=MAX_ORDERS){reason='500건 한도 도달';break}
+    await new Promise(resolve=>setTimeout(resolve,350));
+  }
+ }catch(e){reason=ctrl.signal.aborted?'사용자 중단':errorMessage(e)}
+ finally{
+   if(run===state.run){button.disabled=false;stop.disabled=true;state.orderController=null;
+     if(complete)$('orderFill').style.width='100%';
+     status.textContent=(complete?'선택 기간 조회 완료':'부분 조회')+' · 총 '+offset+'건 확인 · 상품 주문 '+matched.size+'건'+(reason?' · '+reason:'');
+     status.className='status'+(reason?' error':'');
+     renderResult([...matched.values()],complete,reason);
+   }
+ }
+}
+$('search').addEventListener('input',renderCatalog);
+$('reload').addEventListener('click',()=>loadCatalog(true));
+$('catalogMore').addEventListener('click',()=>loadCatalog());
+loadCatalog(true);
+})();
+</script></body></html>
