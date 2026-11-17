@@ -356,6 +356,75 @@ async function catalogProducts(url, env) {
   });
 }
 
+
+async function shipmentBackupBatch(url, env) {
+  const start = url.searchParams.get('start_date') || '';
+  const end = url.searchParams.get('end_date') || '';
+  const startMs = Date.parse(start + 'T00:00:00Z');
+  const endMs = Date.parse(end + 'T00:00:00Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)
+    || !Number.isFinite(startMs) || !Number.isFinite(endMs)
+    || new Date(startMs).toISOString().slice(0,10) !== start
+    || new Date(endMs).toISOString().slice(0,10) !== end
+    || start > end || endMs-startMs > 29*86400000 || end > kstDay(Date.now())
+    || start < '2010-01-01') {
+    return respond({ error:'백업용 날짜 구간은 2010년 이후, 최대 30일로 나눠 요청해주세요.' },400);
+  }
+  const limit = safeInt(url.searchParams.get('limit'), 8, 1, 8);
+  const offset = safeInt(url.searchParams.get('offset'), 0, 0, 5000);
+  const token = await currentToken(env);
+  const headers = {Authorization:'Bearer '+token,'X-Cafe24-Api-Version':API_VERSION};
+  const q = new URL(BASE+'/api/v2/admin/orders');
+  for (const [k,v] of [['start_date',start],['end_date',end],['offset',offset],['limit',limit],['embed','buyer,receivers']])q.searchParams.set(k,String(v));
+  const ordersResp=await fetch(q,{headers});
+  if(!ordersResp.ok)return respond({error:'카페24 백업 주문 목록 요청 실패',http_status:ordersResp.status},502);
+  const data=await ordersResp.json();
+  const orders=Array.isArray(data.orders)?data.orders:[];
+  const mapped=[];
+  // Bounded workload. Two shipments requests in parallel per step.
+  for(let n=0;n<orders.length;n+=2){
+    const chunk=await Promise.all(orders.slice(n,n+2).map(async o=>{
+      const b=Array.isArray(o.buyer)?o.buyer[0]:o.buyer;
+      const receivers=Array.isArray(o.receivers)?o.receivers:(o.receivers?[o.receivers]:[]);
+      let shipping=[],shipping_error=null;
+      try {
+        const res=await fetch(BASE+'/api/v2/admin/orders/'+encodeURIComponent(o.order_id)+'/shipments',{headers});
+        if(!res.ok)shipping_error='배송 API '+res.status;
+        else {
+          const result=await res.json();
+          shipping=Array.isArray(result.shipments)?result.shipments.map(p=>({
+            shipping_code:p.shipping_code||null,
+            tracking_no:p.tracking_no||null,
+            tracking_no_updated_date:p.tracking_no_updated_date||null,
+            shipping_company_code:p.shipping_company_code||null,
+            shipping_company_name:p.shipping_company_name||null,
+            status:p.status||null,
+            order_item_codes:Array.isArray(p.items)?p.items.map(i=>i.order_item_code).filter(Boolean):[]
+          })):[];
+        }
+      }catch{shipping_error='배송 API 통신 실패'}
+      return {
+        order_id:o.order_id||'',
+        order_date:o.order_date||'',
+        buyer_name:typeof b?.name==='string'?b.name:null,
+        payment_status:o.paid??null,
+        shipping_status:o.shipping_status??null,
+        canceled:o.canceled??null,
+        receivers:receivers.map(v=>({
+          name:v.name||null,
+          cellphone:v.cellphone||v.phone||null,
+          zipcode:v.zipcode||null,
+          address1:v.address1||null,
+          address2:v.address2||null
+        })),
+        shipments:shipping,shipping_error
+      };
+    }));
+    mapped.push(...chunk);
+  }
+  return respond({start_date:start,end_date:end,offset,limit,count:mapped.length,has_more:mapped.length===limit,orders:mapped,checked_at:new Date().toISOString()});
+}
+
 export default {
   async fetch(request, env) {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
@@ -371,6 +440,7 @@ export default {
       if (url.pathname === '/api/orders') return await orders(url, env);
       if (url.pathname === '/api/order-explorer') return await exploreOrders(url, env);
       if (url.pathname === '/api/products') return await catalogProducts(url, env);
+      if (url.pathname === '/api/backup/shipping') return await shipmentBackupBatch(url, env);
       if (url.pathname === '/api/shipping-review') return await shippingReviewOrders(url, env);
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
