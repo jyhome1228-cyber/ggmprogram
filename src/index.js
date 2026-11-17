@@ -77,6 +77,8 @@ async function orders(url, env) {
   query.searchParams.set('end_date', kstDay(Date.now()));
   query.searchParams.set('limit', String(limit));
   query.searchParams.set('offset', String(offset));
+  // Cafe24 removed buyer_name from the plain orders response. Embed the buyer resource.
+  query.searchParams.set('embed', 'buyer');
   const countQuery = new URL(BASE + '/api/v2/admin/orders/count');
   countQuery.searchParams.set('start_date', query.searchParams.get('start_date'));
   countQuery.searchParams.set('end_date', query.searchParams.get('end_date'));
@@ -107,6 +109,12 @@ async function orders(url, env) {
     total_count: await countPromise,
     orders: list.map(o => ({
       order_id: o.order_id || '',
+      buyer_name: (() => {
+        const buyer = Array.isArray(o.buyer) ? o.buyer[0] : o.buyer;
+        const name = buyer && typeof buyer === 'object' ? buyer.name : null;
+        // Do not substitute billing name, member ID or receiver name: they are distinct people.
+        return typeof name === 'string' && name.trim() ? name.trim() : null;
+      })(),
       order_date: o.order_date || '',
       order_status: o.order_status || null,
       shipping_status: o.shipping_status ?? null,
