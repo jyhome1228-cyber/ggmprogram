@@ -77,6 +77,21 @@ async function orders(url, env) {
   query.searchParams.set('end_date', kstDay(Date.now()));
   query.searchParams.set('limit', String(limit));
   query.searchParams.set('offset', String(offset));
+  const countQuery = new URL(BASE + '/api/v2/admin/orders/count');
+  countQuery.searchParams.set('start_date', query.searchParams.get('start_date'));
+  countQuery.searchParams.set('end_date', query.searchParams.get('end_date'));
+  const authHeaders = {
+    Authorization: 'Bearer ' + token,
+    'Content-Type': 'application/json',
+    'X-Cafe24-Api-Version': API_VERSION
+  };
+  const countPromise = fetch(countQuery, { headers: authHeaders })
+    .then(async response => {
+      if (!response.ok) return null;
+      const data = await response.json();
+      const total = Number(data.count ?? data.orders?.count);
+      return Number.isInteger(total) && total >= 0 ? total : null;
+    }).catch(() => null);
   const api = await fetch(query, {
     headers: {
       Authorization: 'Bearer ' + token,
@@ -89,10 +104,12 @@ async function orders(url, env) {
   const list = Array.isArray(payload.orders) ? payload.orders : [];
   return respond({
     mall_id: MALL_ID, days, limit, offset, count: list.length, has_more: list.length === limit,
+    total_count: await countPromise,
     orders: list.map(o => ({
       order_id: o.order_id || '',
       order_date: o.order_date || '',
       order_status: o.order_status || null,
+      shipping_status: o.shipping_status ?? null,
       payment_status: o.paid ?? o.payment_status ?? '',
       canceled: o.canceled ?? null,
       payment_date: o.payment_date ?? null,
@@ -124,7 +141,24 @@ export default {
         if (!res.ok) return respond({ error: '주문 상품 정보를 불러오지 못했습니다.', http_status: res.status }, 502);
         const body = await res.json();
         const items = Array.isArray(body.items) ? body.items : [];
-        return respond({ order_id: orderId, count: items.length, items: items.map(x => ({
+        // Shipments may be split across multiple parcels. Fetch only when an order is opened.
+        let shipments = [];
+        let shipment_error = null;
+        try {
+          const shipmentRes = await fetch(BASE + '/api/v2/admin/orders/' + encodeURIComponent(orderId) + '/shipments?limit=100', {
+            headers: { Authorization: 'Bearer ' + token, 'X-Cafe24-Api-Version': API_VERSION }
+          });
+          if (shipmentRes.ok) {
+            const shipmentBody = await shipmentRes.json();
+            shipments = (Array.isArray(shipmentBody.shipments) ? shipmentBody.shipments : []).map(p => ({
+              tracking_no: p.tracking_no ?? null,
+              shipping_company_name: p.shipping_company_name ?? null,
+              status: p.status ?? null,
+              shipping_code: p.shipping_code ?? null
+            }));
+          } else shipment_error = '배송정보 조회 실패 (' + shipmentRes.status + ')';
+        } catch { shipment_error = '배송정보 조회 실패'; }
+        return respond({ order_id: orderId, count: items.length, shipments, shipment_error, items: items.map(x => ({
           name: x.product_name || x.supplier_product_name || '상품명 미제공',
           options: x.options || [],
           quantity: x.quantity ?? null,
