@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GGM OPS | 건강미 주문관리</title>
+<style>
+:root{--navy:#13233b;--bg:#f6f8fb;--line:#e5e9f0;--muted:#7b879b;--text:#172237;--blue:#345bd7;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+button,input,select{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}
+.layout{display:flex;min-height:100vh}.sidebar{width:238px;min-width:238px;background:#14243c;color:#fff;display:flex;flex-direction:column;padding:30px 16px 22px}
+.logo{padding:0 14px 34px;font-size:23px;letter-spacing:-.7px;font-weight:800}.logo small{display:block;font-size:10px;letter-spacing:1.8px;font-weight:600;color:#9fb2d0;margin-top:5px}
+.nav-label{color:#8699b6;font-size:10px;letter-spacing:1.3px;margin:8px 14px 12px;font-weight:750}
+.nav{width:100%;border:0;border-radius:9px;background:transparent;color:#b6c4d8;padding:12px 14px;text-align:left;display:flex;align-items:center;gap:11px;font-weight:600}
+.nav.active{background:#30415e;color:#fff}.nav.disabled{opacity:.45;cursor:not-allowed}.nav+.nav{margin-top:3px}.nav svg{width:17px;height:17px}
+.sidebar-foot{margin-top:auto;padding:18px 14px 0;border-top:1px solid #34445c;color:#9fb2d0;font-size:12px;line-height:1.8}
+.main{flex:1;min-width:0}.topbar{height:68px;background:white;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 38px}
+.breadcrumb{font-size:12px;color:#8792a4}.breadcrumb b{color:#283b57;font-weight:700}.connection{display:inline-flex;align-items:center;gap:7px;color:#4b5a6c;font-size:12px;font-weight:600}.dot{height:7px;width:7px;border-radius:50%;background:#d69b43}.dot.ok{background:#24a873}
+.content{max-width:1550px;padding:40px 38px 70px;margin:auto}.heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:28px}.eyebrow{font-size:11px;letter-spacing:1.6px;font-weight:800;color:#65778d;margin-bottom:12px}
+h1{font-size:30px;letter-spacing:-1.3px;margin:0 0 10px;font-weight:800}p{margin:0;color:#7b889b;line-height:1.6}
+.btn{border-radius:9px;border:1px solid #dbe2eb;background:#fff;padding:10px 15px;color:#34435b;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:39px}
+.btn.primary{background:var(--navy);color:#fff;border-color:var(--navy)}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn:hover:not(:disabled){filter:brightness(.96)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:23px}.metric{background:#fff;border:1px solid var(--line);border-radius:13px;padding:23px 22px;min-height:132px}
+.metric .label{font-size:12px;font-weight:650;color:#718098}.metric .value{margin-top:14px;font-size:31px;font-weight:800;letter-spacing:-1.3px}.metric .foot{margin-top:6px;color:#9ba6b5;font-size:11px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}.panel-head{padding:24px 25px 19px;display:flex;align-items:center;justify-content:space-between;gap:14px}.panel-head h2{margin:0 0 6px;font-size:17px;letter-spacing:-.4px}.panel-head small{color:var(--muted)}
+.filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 25px 20px}
+.search,select{border:1px solid #dfe5ee;border-radius:8px;background:white;min-height:40px;padding:0 12px;color:#334155;outline:none}.search{width:260px}.search:focus,select:focus{border-color:#788ed8}
+.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}thead{background:#f9fafc;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}th{font-size:11px;color:#8190a5;text-align:left;font-weight:750;padding:16px 22px}td{padding:17px 22px;border-bottom:1px solid #eef1f5;font-size:12px}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fcfdff}
+.id{font-weight:750;color:#213858;letter-spacing:.15px}.pill{display:inline-block;padding:6px 9px;background:#edf3fb;color:#526d9a;border-radius:6px;font-size:11px;font-weight:700}.pill.gray{background:#f2f3f5;color:#667183}.pill.green{background:#e5f7ed;color:#238552}
+.money{font-weight:750;font-variant-numeric:tabular-nums}.empty{padding:75px 20px;text-align:center;color:#8795a8;line-height:1.9}.empty strong{display:block;color:#38485d;font-size:15px;margin-bottom:5px}
+.notice{margin:15px 0 0;background:#eff4fc;border:1px solid #dfe8f7;color:#546b8d;padding:12px 16px;border-radius:9px;font-size:12px;line-height:1.7}
+.notice.error{background:#fff1f1;border-color:#f3d4d4;color:#ad4242}.pagination{padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);gap:8px}
+.pages{display:flex;gap:7px}.meta{color:#8190a2;font-size:12px}footer{color:#9ba5b4;margin-top:24px;font-size:11px}
+@media(max-width:1050px){.sidebar{width:78px;min-width:78px;padding:25px 10px}.logo{font-size:13px;padding:0 3px 24px}.logo small,.nav-label,.nav span,.sidebar-foot{display:none}.nav{justify-content:center;padding:14px}.content{padding:28px 22px}.topbar{padding:0 22px}.metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.sidebar{width:55px;min-width:55px;padding:20px 5px}.logo{font-size:10px}.content{padding:22px 14px}.topbar{padding:0 14px}.metrics{gap:8px}.metric{padding:15px;min-height:108px}.metric .value{font-size:24px}.heading{align-items:flex-start;flex-direction:column}.search{width:100%}.filters>*{flex-grow:1}h1{font-size:25px}.panel-head{padding:19px 15px}.filters{padding:0 15px 15px}.pagination{padding:15px}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="logo">GGM OPS<small>COMMERCE OPERATIONS</small></div>
+  <div class="nav-label">WORKSPACE</div>
+  <button class="nav active" aria-current="page" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg><span>주문 대시보드</span></button>
+  <button class="nav disabled" disabled type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18M6 6v14h12V6M9 10h6M9 14h6"/></svg><span>배송 관리 · 준비 중</span></button>
+  <button class="nav disabled" disabled type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 9 17H3L12 3Z"/><path d="M12 9v5M12 17v1"/></svg><span>누락 감지 · 준비 중</span></button>
+  <button class="nav disabled" disabled type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H8l-4 3V5Z"/></svg><span>CS 관리 · 준비 중</span></button>
+  <div class="sidebar-foot">CAFE24 · ggmspa<br>GGM OPS v0.1</div>
+</aside>
+<div class="main">
+  <header class="topbar"><div class="breadcrumb">건강미 운영센터 / <b>주문 대시보드</b></div><span class="connection"><i id="dot" class="dot"></i><span id="connectText">연결 확인 중</span></span></header>
+  <main class="content">
+    <div class="heading"><div><div class="eyebrow">ORDER MANAGEMENT</div><h1>주문 현황</h1><p>카페24에 등록된 주문을 실시간으로 요청해 조회합니다.</p></div><div class="actions"><button id="reconnect" class="btn">카페24 재연결</button><button id="refresh" class="btn primary">새로고침</button></div></div>
+    <section class="metrics">
+      <div class="metric"><div class="label">조회된 주문</div><div class="value" id="metricCount">—</div><div class="foot">현재 페이지 기준</div></div>
+      <div class="metric"><div class="label">결제완료 상태</div><div class="value" id="metricPaid">—</div><div class="foot">현재 페이지 기준</div></div>
+      <div class="metric"><div class="label">결제대기 상태</div><div class="value" id="metricUnpaid">—</div><div class="foot">현재 페이지 기준</div></div>
+      <div class="metric"><div class="label">현재 조회 범위</div><div class="value" id="metricDays">30일</div><div class="foot">최대 최근 30일</div></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><div><h2>전체 주문 조회</h2><small id="caption">주문 데이터를 불러오는 중입니다.</small></div><span class="meta" id="updated">—</span></div>
+      <div class="filters"><input class="search" id="search" type="search" placeholder="주문번호 검색" aria-label="주문번호 검색"><select id="days" aria-label="조회 기간"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option></select><select id="pay" aria-label="결제 상태"><option value="">결제상태 전체</option><option value="T">결제완료(T)</option><option value="F">결제대기(F)</option></select><button class="btn" id="csv">현재 목록 CSV 저장</button></div>
+      <div class="table-wrap"><table><thead><tr><th>주문번호</th><th>주문 일시</th><th>주문상태 (원본 코드)</th><th>결제상태 (원본 코드)</th><th>주문금액</th></tr></thead><tbody id="rows"><tr><td colspan="5" class="empty">조회 중입니다.</td></tr></tbody></table></div>
+      <div class="pagination"><span id="pageInfo" class="meta">—</span><div class="pages"><button id="prev" class="btn" disabled>이전</button><button id="next" class="btn" disabled>다음</button></div></div>
+    </section>
+    <div class="notice" id="notice">현재 페이지에 표시된 주문만 집계합니다. 주문·결제 상태는 카페24에서 받은 원본 코드이며, 전체 주문수나 배송 누락 건수와 다를 수 있습니다.</div>
+    <footer>GGM OPS v0.1 · 실 주문 조회 전용 · 주문 수정 및 배송 처리 기능 없음</footer>
+  </main>
+</div></div>
+<script>
+(() => {
+'use strict';
+const byId = id => document.getElementById(id);
+const state = { orders: [], offset: 0, limit: 50, hasMore: false, days: 30, busy: false };
+const fmt = value => { const n = Number(value); return Number.isFinite(n) ? new Intl.NumberFormat('ko-KR').format(n) + '원' : '—'; };
+const date = value => value ? String(value).slice(0,19).replace('T',' ') : '—';
+const cell = (tr, value, cls) => { const td = document.createElement('td'); td.textContent = value == null ? '—' : String(value); if(cls)td.className=cls; tr.append(td); };
+const message = (text, error = false) => { byId('notice').textContent=text; byId('notice').className='notice' + (error?' error':''); };
+function render() {
+  const query=byId('search').value.trim().toLowerCase(), pay=byId('pay').value;
+  const view=state.orders.filter(o=>String(o.order_id).toLowerCase().includes(query) && (!pay||String(o.payment_status)===pay));
+  const body=byId('rows'); body.replaceChildren();
+  if(!view.length){ const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=5;td.className='empty';td.textContent=state.orders.length?'필터 조건에 맞는 주문이 없습니다.':'해당 기간에 조회된 주문이 없습니다.';tr.append(td);body.append(tr); }
+  view.forEach(o=>{const tr=document.createElement('tr');cell(tr,o.order_id,'id');cell(tr,date(o.order_date));cell(tr,o.order_status||'—');cell(tr,o.payment_status||'—');cell(tr,fmt(o.amount),'money');body.append(tr);});
+  byId('metricCount').textContent=String(state.orders.length);
+  byId('metricPaid').textContent=String(state.orders.filter(o=>o.payment_status==='T').length);
+  byId('metricUnpaid').textContent=String(state.orders.filter(o=>o.payment_status==='F').length);
+  byId('metricDays').textContent=state.days+'일';
+  byId('pageInfo').textContent=(state.offset+1)+'~'+(state.offset+state.orders.length)+'번 조회 구간 · 화면 표시 '+view.length+'건';
+  byId('caption').textContent='이번 요청 '+state.orders.length+'건 반환 · 전체 건수 아님';
+  byId('prev').disabled=state.busy||state.offset===0;byId('next').disabled=state.busy||!state.hasMore;
+  byId('csv').disabled=!view.length;
+  return view;
+}
+async function load() {
+  if(state.busy)return; state.busy=true;byId('refresh').disabled=true; byId('caption').textContent='카페24 주문 조회 중...';
+  try {
+    const res=await fetch('/api/orders?days='+state.days+'&limit='+state.limit+'&offset='+state.offset,{credentials:'same-origin',cache:'no-store'});
+    if(!res.ok){let data={};try{data=await res.json()}catch{};throw Error(data.error||'조회 실패 (HTTP '+res.status+')');}
+    const data=await res.json();state.orders=data.orders||[];state.hasMore=Boolean(data.has_more);
+    message('실제 카페24 주문을 조회한 결과입니다. 검색과 결제상태 필터는 현재 불러온 '+state.orders.length+'건에만 적용됩니다.');
+    byId('updated').textContent='최근 조회 '+new Date().toLocaleTimeString('ko-KR');
+  } catch(err) { state.orders=[];state.hasMore=false;message('주문 조회 오류: '+err.message,true);byId('updated').textContent='조회 실패'; }
+  finally{state.busy=false;byId('refresh').disabled=false;render();}
+}
+async function status() {
+  try{const res=await fetch('/api/status',{credentials:'same-origin',cache:'no-store'});const v=await res.json();if(!res.ok)throw Error(v.error||'상태 확인 실패');byId('dot').classList.toggle('ok',Boolean(v.connected));byId('connectText').textContent=v.connected?'카페24 인증정보 연결됨':'카페24 재연결 필요';}
+  catch{byId('connectText').textContent='연결 확인 실패';}
+}
+byId('search').addEventListener('input',render);byId('pay').addEventListener('change',render);
+byId('days').addEventListener('change',()=>{state.days=Number(byId('days').value);state.offset=0;load();});
+byId('refresh').addEventListener('click',()=>{status();load();});
+byId('prev').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);load();});
+byId('next').addEventListener('click',()=>{state.offset+=state.limit;load();});
+byId('reconnect').addEventListener('click',()=>{window.location.assign('/oauth/start');});
+byId('csv').addEventListener('click',()=>{const view=render();const list=[['주문번호','주문일시','주문상태','결제상태','금액'],...view.map(o=>[o.order_id,o.order_date,o.order_status,o.payment_status,o.amount])];const safe=v=>{const s=String(v??'');return '"'+(/^[=+@-]/.test(s)?'\t':'')+s.replace(/"/g,'""')+'"';};const data='\uFEFF'+list.map(row=>row.map(safe).join(',')).join('\r\n');const blob=new Blob([data],{type:'text/csv;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download='ggm-orders-'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(href);});
+status();load();
+})();
+</script>
+</body></html>

@@ -1,0 +1,13 @@
+{
+  "name": "ggm-ops",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-17",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/oauth/*"]
+  },
+  "kv_namespaces": [
+    { "binding": "GGM_AUTH", "id": "b924e8b5875a418dbd3dbc6b1ff15fe1" }
+  ]
+}
