@@ -130,7 +130,18 @@ async function openOrder(order) {
       const item=document.createElement('section');item.className='item';
       const title=document.createElement('div');title.className='item-title';title.textContent=x.name;item.append(title);
       const sub=document.createElement('div');sub.className='item-sub';
-      const option=Array.isArray(x.options)?x.options.map(v=>typeof v==='string'?v:JSON.stringify(v)).join(', '):String(x.options||'');
+      const optionText = raw => {
+        if (raw == null) return '';
+        if (typeof raw === 'string') return raw.trim();
+        if (Array.isArray(raw)) return raw.map(optionText).filter(Boolean).join(', ');
+        if (typeof raw !== 'object') return '';
+        const value = raw.option_value;
+        const text = raw.option_text ?? (typeof value === 'object' ? value?.option_text : value);
+        const label = optionText(text);
+        const name = typeof raw.option_name === 'string' ? raw.option_name.trim() : '';
+        return label ? (name ? name + ': ' + label : label) : '';
+      };
+      const option=optionText(x.options);
       sub.textContent='수량 '+(x.quantity??'미제공')+(option?' · 옵션 '+option:'');
       if(x.tracking_no)sub.textContent+=' · 송장 '+x.tracking_no;
       if(x.shipping_company_name)sub.textContent+=' ('+x.shipping_company_name+')';
