@@ -30,7 +30,7 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 .options{margin:12px 0 16px}.option-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0;border-bottom:1px solid #eaf0f0}.option-row span:first-child{overflow-wrap:anywhere}
 .note{padding:15px 18px;border-radius:9px;border:1px solid #dbe6e8;background:#edf4f4;color:#617e87;font-size:12px;line-height:1.8;margin-top:19px}
 .empty{padding:45px 20px;text-align:center;color:#8a9ba2;line-height:1.8}
-.datebar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:15px 0}.datebar label{font-size:11px;color:#7c9097}
+.datebar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:15px 0}.datebar label{font-size:11px;color:#7c9097}.datebar .date-preset{border:1px solid #d9e4e6;border-radius:8px;min-height:40px;padding:7px 10px;background:#f3f8f8;color:#506d77}.datebar input:focus{outline:2px solid #a8c0c6;outline-offset:1px}
 .order-list{max-height:355px;overflow:auto;border:1px solid var(--line);border-radius:8px}
 .order-entry{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start;padding:13px 15px;border-bottom:1px solid #edf1f2}
 .order-entry:last-child{border-bottom:0}.order-code{font-weight:750;color:#4c6d79}.order-extra{font-size:11px;color:#84949a;margin-top:4px}
@@ -51,13 +51,13 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 <div class="split"><div class="catalog"><div class="subhead"><h2>카페24 등록 상품</h2><span id="catalogCount" class="meta">—</span></div><div class="tablewrap"><table><thead><tr><th>상품번호</th><th>상품명</th><th>판매가</th></tr></thead><tbody id="products"><tr><td colspan="3" class="empty">불러오는 중...</td></tr></tbody></table></div></div>
 <div class="details"><div class="subhead"><h2>상품별 주문조회</h2><span id="orderStatus" class="meta">상품을 선택해주세요.</span></div><div class="detail-content" id="details">
 <div class="empty">왼쪽 상품 목록에서 상품을 선택하면 주문 내역을 조회할 수 있어요.</div></div></div></div></section>
-<div class="note">상품 목록은 카페24 상품번호 기준으로 표시합니다. 주문 조회는 선택 기간의 최근 최대 500개 주문을 대조하는 읽기 전용 기능입니다. 전체 주문이 500건을 넘거나 요청이 실패하면 <strong>부분 조회</strong>로 표시합니다. 상품 수량은 주문상품 기준이며 취소·반품 차감 실적과 같지 않을 수 있습니다. 제품 정보와 고객 이름은 서버에 별도로 저장하지 않습니다.</div>
+<div class="note">상품 목록은 카페24 상품번호 기준으로 표시합니다. 주문 조회는 선택 기간의 주문을 30일 단위로을 대조하는 읽기 전용 기능입니다. 일부 구간이 API 한도를 넘거나 요청이 실패하면 <strong>부분 조회</strong>로 표시합니다. 상품 수량은 주문상품 기준이며 취소·반품 차감 실적과 같지 않을 수 있습니다. 제품 정보와 고객 이름은 서버에 별도로 저장하지 않습니다.</div>
 </main></div></div>
 <script>
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-const MAX_ORDERS=500;
+const MAX_ORDERS=5000,DAY=86400000;
 const state={products:[],offset:0,more:false,loading:false,selected:null,orderController:null,run:0,matches:[],lastComplete:false,lastRange:null,catalogError:''};
 const fmt=x=>x==null?'—':Number.isFinite(Number(x))?Number(x).toLocaleString('ko-KR')+'원':'—';
 const kstDay=t=>new Date(t+9*3600000).toISOString().slice(0,10);
@@ -115,9 +115,11 @@ function updateControls(container,run){
   const input=document.createElement('input');input.type='date';input.id=id;input.max=kstDay(Date.now());
   l.append(input);row.append(l);
  }
- const end=kstDay(Date.now()),start=kstDay(Date.now()-29*86400000);
- row.querySelector('#startDate').value=start;row.querySelector('#endDate').value=end;
- const button=document.createElement('button');button.className='btn primary';button.textContent='이 상품 주문 조회';button.addEventListener('click',()=>scanOrders(run));row.append(button);
+ const end=kstDay(Date.now()),start=kstDay(Date.now()-89*DAY);
+ row.querySelector('#startDate').value=start;row.querySelector('#endDate').value=end;row.querySelector('#startDate').max=end;row.querySelector('#endDate').max=end;
+ const presets=document.createElement('select');presets.className='date-preset';for(const [value,label] of [['1','오늘'],['7','최근 7일'],['30','최근 30일'],['90','최근 3개월']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;presets.append(opt)}presets.value='90';presets.addEventListener('change',()=>{const days=Number(presets.value),now=Date.now();row.querySelector('#startDate').value=kstDay(now-(days-1)*DAY);row.querySelector('#endDate').value=kstDay(now);scanOrders(run)});row.append(presets);
+ for(const input of row.querySelectorAll('input[type=date]'))input.addEventListener('change',()=>scanOrders(run));
+ const button=document.createElement('button');button.className='btn primary';button.textContent='선택 날짜 다시 조회';button.addEventListener('click',()=>scanOrders(run));row.append(button);
  const stop=document.createElement('button');stop.className='btn';stop.textContent='중단';stop.disabled=true;stop.id='orderStop';
  stop.addEventListener('click',()=>state.orderController?.abort());row.append(stop);
  const exportButton=document.createElement('button');exportButton.className='btn';exportButton.id='exportOrders';exportButton.disabled=true;exportButton.textContent='이 상품 주문 엑셀 (CSV)';exportButton.addEventListener('click',exportSelectedOrders);row.append(exportButton);
@@ -134,14 +136,15 @@ function chooseProduct(p){
  const summary=document.createElement('div');summary.className='stats';summary.id='orderStats';root.append(summary);
  const opts=document.createElement('div');opts.id='orderOptions';opts.className='options';root.append(opts);
  const list=document.createElement('div');list.id='orderList';list.className='order-list';empty(list,'조회 결과가 여기에 표시됩니다.');root.append(list);
- $('orderStatus').textContent=p.product_no+'번 상품 선택';
+ $('orderStatus').textContent=p.product_no+'번 상품 선택 · 최근 구매자 자동 조회';
+ scanOrders(run);
 }
 function dateRange(){
  const start=$('startDate').value,end=$('endDate').value;
  if(!start||!end)throw Error('시작일·종료일을 모두 선택해주세요.');
  if(start>end)throw Error('시작일이 종료일보다 늦습니다.');
  const d1=Date.parse(start+'T00:00:00Z'),d2=Date.parse(end+'T00:00:00Z');
- if(!Number.isFinite(d1)||!Number.isFinite(d2)||(d2-d1)/86400000>29)throw Error('조회 기간은 최대 30일입니다.');
+ if(!Number.isFinite(d1)||!Number.isFinite(d2)||(d2-d1)/DAY>91)throw Error('조회 기간은 최대 3개월(92일)입니다.');
  if(end>kstDay(Date.now()))throw Error('종료일은 오늘 이후일 수 없습니다.');
  if(d1<Date.now()-366*86400000)throw Error('최근 1년 이내의 기간만 조회할 수 있습니다.');
  return {start,end};
@@ -158,6 +161,7 @@ function renderResult(matches,complete,note){
  for(const m of matches)for(const it of m.items){const key=it.option_label||'옵션 없음';opts.set(key,(opts.get(key)||0)+(Number(it.quantity)||0))}
  const optBox=$('orderOptions');optBox.replaceChildren();
  for(const [name,count] of opts){const row=document.createElement('div');row.className='option-row';const a=document.createElement('span'),b=document.createElement('strong');a.textContent=name;b.textContent=count+'개';row.append(a,b);optBox.append(row)}
+ matches.sort((a,b)=>String(b.order_date||'').localeCompare(String(a.order_date||''))||String(b.order_id).localeCompare(String(a.order_id)));
  const list=$('orderList');list.replaceChildren();
  if(!matches.length){empty(list,'해당 기간에 검색된 상품 주문이 없습니다. '+(!complete?'조회가 완전하지 않을 수 있습니다.':''));return}
  for(const m of matches){
@@ -173,33 +177,44 @@ async function scanOrders(run){
  state.orderController?.abort();const ctrl=new AbortController();state.orderController=ctrl;state.lastRange=range;
  const button=$('startDate').closest('.datebar').querySelector('button'),stop=$('orderStop');
  button.disabled=true;stop.disabled=false;
- const status=$('orderDetailsStatus');status.className='status';status.textContent='카페24 주문 조회 중 (최대 500건 대조)';
- let matched=new Map(),offset=0,complete=false,reason='';
+ const status=$('orderDetailsStatus');status.className='status';status.textContent='카페24 주문 조회 중 · 최신 주문부터 확인하고 있습니다.';
+ let matched=new Map(),scanned=0,complete=false,reason='';
+ const parts=[],first=Date.parse(range.start+'T00:00:00Z'),last=Date.parse(range.end+'T00:00:00Z');
+ const iso=t=>new Date(t).toISOString().slice(0,10);
+ for(let cursor=last;cursor>=first;cursor-=30*DAY){
+   parts.push({start:iso(Math.max(first,cursor-29*DAY)),end:iso(cursor)});
+ }
  try{
-  while(offset<MAX_ORDERS){
-    if(ctrl.signal.aborted)throw Error('사용자가 조회를 중단했습니다.');
-    const query=new URLSearchParams({start_date:range.start,end_date:range.end,offset:String(offset),limit:'50'});
-    const response=await fetch('/api/order-explorer?'+query,{credentials:'same-origin',cache:'no-store',signal:ctrl.signal});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok)throw Error(data.error||'카페24 주문조회 오류 '+response.status);
-    if(data.items_unavailable)throw Error('카페24 주문상품 데이터가 제공되지 않았습니다.');
-    for(const o of data.orders||[]){
-      const relevant=(o.items||[]).filter(it=>String(it.product_no||'')===String(p.product_no));
-      if(relevant.length)matched.set(o.order_id,{...o,items:relevant});
-    }
-    offset+=(data.orders||[]).length;
-    $('orderFill').style.width=Math.min(100,offset/MAX_ORDERS*100)+'%';
-    status.textContent=offset+'건 확인 · 일치 주문 '+matched.size+'건';
-    renderResult([...matched.values()],false,'조회 중');
-    if(!data.has_more || !(data.orders||[]).length){complete=true;break}
-    if(offset>=MAX_ORDERS){reason='500건 한도 도달';break}
-    await new Promise(resolve=>setTimeout(resolve,350));
-  }
+   for(const part of parts){
+     let offset=0,ended=false;
+     while(!ended){
+       if(ctrl.signal.aborted)throw Error('사용자가 조회를 중단했습니다.');
+       if(offset>5000)throw Error('일부 날짜구간이 5,000건을 초과했습니다. 기간을 나눠 조회해주세요.');
+       const query=new URLSearchParams({start_date:part.start,end_date:part.end,offset:String(offset),limit:'50'});
+       const response=await fetch('/api/order-explorer?'+query,{credentials:'same-origin',cache:'no-store',signal:ctrl.signal});
+       const data=await response.json().catch(()=>({}));
+       if(!response.ok)throw Error(data.error||'카페24 주문조회 오류 '+response.status);
+       if(data.items_unavailable)throw Error('카페24 주문상품 데이터가 제공되지 않았습니다.');
+       if(!Array.isArray(data.orders))throw Error('주문 API 응답 형식 오류');
+       for(const o of data.orders){
+         const relevant=(o.items||[]).filter(it=>String(it.product_no||'')===String(p.product_no));
+         if(relevant.length)matched.set(o.order_id,{...o,items:relevant});
+       }
+       offset+=data.orders.length;scanned+=data.orders.length;
+       $('orderFill').style.width=Math.min(100,scanned/(MAX_ORDERS*parts.length)*100)+'%';
+       status.textContent=scanned+'건 확인 · 해당 상품 '+matched.size+'건 · '+part.start+'~'+part.end;
+       renderResult([...matched.values()],false,'조회 중');
+       ended=!data.has_more||data.orders.length===0;
+       if(!ended)await new Promise(resolve=>setTimeout(resolve,350));
+     }
+   }
+   complete=true;
+
  }catch(e){reason=ctrl.signal.aborted?'사용자 중단':errorMessage(e)}
  finally{
    if(run===state.run){button.disabled=false;stop.disabled=true;state.orderController=null;
      if(complete)$('orderFill').style.width='100%';
-     status.textContent=(complete?'선택 기간 조회 완료':'부분 조회')+' · 총 '+offset+'건 확인 · 상품 주문 '+matched.size+'건'+(reason?' · '+reason:'');
+     status.textContent=(complete?'선택 기간 조회 완료':'부분 조회')+' · 총 '+scanned+'건 확인 · 상품 주문 '+matched.size+'건'+(reason?' · '+reason:'');
      status.className='status'+(reason?' error':'');
      renderResult([...matched.values()],complete,reason);
      $('exportOrders').disabled=!matched.size;
