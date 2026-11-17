@@ -92,8 +92,10 @@ async function orders(url, env) {
     orders: list.map(o => ({
       order_id: o.order_id || '',
       order_date: o.order_date || '',
-      order_status: o.order_status || '',
-      payment_status: o.payment_status || '',
+      order_status: o.order_status || null,
+      payment_status: o.paid ?? o.payment_status ?? '',
+      canceled: o.canceled ?? null,
+      payment_date: o.payment_date ?? null,
       currency: o.currency || 'KRW',
       amount: amount(o.actual_order_amount)
     }))
@@ -112,6 +114,25 @@ export default {
         return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token), checked_at: new Date().toISOString() });
       }
       if (url.pathname === '/api/orders') return await orders(url, env);
+      if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
+        const orderId = url.pathname.split('/')[3];
+        if (!/^\\d{8}-\\d{7,9}$/.test(orderId || '')) return respond({ error: '올바른 주문번호가 아닙니다.' }, 400);
+        const token = await currentToken(env);
+        const res = await fetch(BASE + '/api/v2/admin/orders/' + encodeURIComponent(orderId) + '/items?limit=100', {
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', 'X-Cafe24-Api-Version': API_VERSION }
+        });
+        if (!res.ok) return respond({ error: '주문 상품 정보를 불러오지 못했습니다.', http_status: res.status }, 502);
+        const body = await res.json();
+        const items = Array.isArray(body.items) ? body.items : [];
+        return respond({ order_id: orderId, count: items.length, items: items.map(x => ({
+          name: x.product_name || x.supplier_product_name || '상품명 미제공',
+          options: x.options || [],
+          quantity: x.quantity ?? null,
+          order_status: x.order_status || null,
+          tracking_no: x.tracking_no || null,
+          shipping_company_name: x.shipping_company_name || null
+        })) });
+      }
       if (url.pathname === '/oauth/start') {
         const state = secureRandom();
         await env.GGM_AUTH.put(STATE_PREFIX + state, 'pending', { expirationTtl: 300 });
