@@ -43,7 +43,7 @@
 <div class="summary"><div class="stat"><div class="label">조회된 주문</div><div class="value" id="orderCount">—</div></div>
 <div class="stat"><div class="label">주문자 수 (이름 기준)</div><div class="value" id="buyerCount">—</div></div>
 <div class="stat"><div class="label">제품 종류 (상품번호 기준)</div><div class="value" id="productCount">—</div></div></div>
-<section class="panel"><div class="controls"><label>빠른 기간 <select id="days"><option value="1">오늘</option><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option><option value="custom">직접 선택</option></select></label>
+<section class="panel"><div class="controls"><label>빠른 기간 <select id="days"><option value="1">오늘</option><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option><option value="90">최근 3개월</option><option value="custom">직접 선택</option></select></label>
 <label>시작일 <input id="startDate" class="date-field" type="date" aria-label="시작일"></label>
 <label>종료일 <input id="endDate" class="date-field" type="date" aria-label="종료일"></label>
 <button class="btn primary" id="scan">선택기간 주문 조회</button><button class="btn" id="stop" disabled>조회 중단</button><button class="btn" id="download" disabled>엑셀 내보내기 (CSV)</button><span class="meta" id="scanNote">주문 자동 조회 준비 중...</span></div>
@@ -53,13 +53,13 @@
 <section class="panel"><div class="tab-panel" id="buyerPanel"><div class="results-head"><h2>주문자 조회</h2><input class="search" id="buyerSearch" placeholder="주문자명 또는 주문번호 검색" type="search" aria-label="주문자명 또는 주문번호 검색"></div>
 <div class="table-scroll"><table><thead><tr><th>주문번호</th><th>주문자명</th><th>주문일시</th><th>제품/옵션</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="buyerRows"><tr><td colspan="6" class="empty">카페24 주문을 불러오는 중입니다.</td></tr></tbody></table></div></div>
 <div class="tab-panel" id="productPanel" hidden><div class="results-head"><h2>제품별 주문리스트</h2><input class="search" id="productSearch" placeholder="제품명 검색" type="search" aria-label="제품명 검색"></div><div class="product-list" id="productRows"><div class="empty">카페24 제품별 주문을 불러오는 중입니다.</div></div></div></section>
-<div class="warn">주문자 조회는 <strong>선택기간에 불러온 주문</strong>을 대상으로 하며, 서로 다른 동명이인은 별도로 식별하지 않습니다. 제품별 목록은 카페24 상품번호를 우선 기준으로 묶고 옵션별 주문·수량을 집계합니다. 접속 시 최근 30일을 자동 조회하며 직접 날짜를 선택할 수 있습니다(최대 30일 범위). 최대 500건만 순차 조회합니다. 한도를 초과하거나 API 오류가 발생하면 <strong>부분 조회</strong>로 표시합니다. 엑셀 내보내기는 한글 호환 UTF-8 CSV이며 현재 검색된 결과만 저장합니다. 고객 연락처와 주소는 표시하거나 저장하지 않고, 조회 결과는 새로고침 시 사라집니다.</div>
+<div class="warn">주문자 조회는 <strong>선택기간에 불러온 주문</strong>을 대상으로 하며, 서로 다른 동명이인은 별도로 식별하지 않습니다. 제품별 목록은 카페24 상품번호를 우선 기준으로 묶고 옵션별 주문·수량을 집계합니다. 접속 시 최근 30일을 자동 조회하며 직접 날짜를 선택할 수 있습니다(최대 30일 범위). 30일 구간별로 순차 조회합니다. 한도를 초과하거나 API 오류가 발생하면 <strong>부분 조회</strong>로 표시합니다. 엑셀 내보내기는 한글 호환 UTF-8 CSV이며 현재 검색된 결과만 저장합니다. 고객 연락처와 주소는 표시하거나 저장하지 않고, 조회 결과는 새로고침 시 사라집니다.</div>
 </main></div></div>
 <script>
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
-const MAX=500,LIMIT=50;
+const MAX=5000,LIMIT=50,DAY=86400000;
 const state={orders:[],busy:false,complete:false,partial:false,controller:null,reason:'',mode:'buyer',timestamp:null,hasLoaded:false,range:null};
 const fmt=x=>{const n=Number(x);return Number.isFinite(n)?n.toLocaleString('ko-KR')+'원':'—'};
 const date=x=>x?String(x).slice(0,19).replace('T',' '):'—';
@@ -137,7 +137,7 @@ function selectedRange(){
  if(!a||!b)throw Error('시작일과 종료일을 선택해주세요.');
  const start=Date.parse(a+'T00:00:00Z'),end=Date.parse(b+'T00:00:00Z');
  if(!Number.isFinite(start)||!Number.isFinite(end)||a>b)throw Error('시작일과 종료일을 다시 확인해주세요.');
- if((end-start)/86400000>29)throw Error('조회기간은 최대 30일입니다.');
+ if((end-start)/DAY>91)throw Error('조회기간은 최대 3개월(92일)입니다.');
  if(b>kstDate(Date.now()))throw Error('종료일은 오늘 이후일 수 없습니다.');
  if(start<Date.now()-366*86400000)throw Error('최근 1년 이내의 날짜만 조회할 수 있습니다.');
  return {start:a,end:b};
@@ -151,24 +151,36 @@ async function scan(){
  state.busy=true;state.hasLoaded=true;state.complete=false;state.partial=false;state.orders=[];state.reason='';state.controller=new AbortController();
  const signal=state.controller.signal;
  $('progressWrap').hidden=false;$('bar').style.width='0%';$('scanNote').classList.remove('error');$('loadingDetail').textContent=range.start+' ~ '+range.end+' · 조회 시작';
- render();let offset=0;
+ render();let scanned=0;
+ const parts=[],first=Date.parse(range.start+'T00:00:00Z'),last=Date.parse(range.end+'T00:00:00Z');
+ const iso=t=>new Date(t).toISOString().slice(0,10);
+ for(let cursor=first;cursor<=last;cursor+=30*DAY){
+   parts.push({start:iso(cursor),end:iso(Math.min(last,cursor+29*DAY))});
+ }
+ let finished=0;
  try {
-   while(offset<MAX){
-     if(signal.aborted)throw new Error('사용자 중단');
-     const query=new URLSearchParams({start_date:range.start,end_date:range.end,offset:String(offset),limit:String(LIMIT)});
-     const res=await fetch('/api/order-explorer?'+query,{cache:'no-store',credentials:'same-origin',signal});
-     let data={};try{data=await res.json()}catch{throw new Error('서버 응답을 읽지 못했습니다 (HTTP '+res.status+')')}
-     if(!res.ok)throw new Error(data.error||'API 오류 '+res.status);
-     if(!Array.isArray(data.orders))throw new Error('잘못된 주문 응답');
-     if(data.items_unavailable)throw new Error('카페24에서 주문상품 포함 데이터를 제공하지 않았습니다. 추가 확인이 필요합니다.');
-     state.orders.push(...data.orders);offset+=data.orders.length;state.timestamp=data.checked_at;
-     $('bar').style.width=Math.min(100,offset/MAX*100)+'%';
-     $('progressText').textContent=offset+'건 조회 · 최대 '+MAX+'건까지 확인';
-     $('scanNote').textContent='선택기간 주문 '+offset+'건 불러오는 중';$('loadingDetail').textContent=range.start+' ~ '+range.end+' · '+offset+'건 조회';render();
-     if(!data.has_more || data.orders.length===0){state.complete=true;break}
-     if(offset>=MAX){state.reason='500건 제한에 도달해 나머지 주문은 미조회';break}
-     await sleep(500);
+   for(const part of parts){
+     let offset=0,ended=false;
+     while(!ended){
+       if(signal.aborted)throw new Error('사용자 중단');
+       if(offset>5000)throw new Error(part.start+' 구간 5,000건 초과 · 기간을 나눠 조회해주세요.');
+       const query=new URLSearchParams({start_date:part.start,end_date:part.end,offset:String(offset),limit:String(LIMIT)});
+       const res=await fetch('/api/order-explorer?'+query,{cache:'no-store',credentials:'same-origin',signal});
+       let data={};try{data=await res.json()}catch{throw new Error('서버 응답을 읽지 못했습니다 (HTTP '+res.status+')')}
+       if(!res.ok)throw new Error(data.error||'API 오류 '+res.status);
+       if(!Array.isArray(data.orders))throw new Error('잘못된 주문 응답');
+       if(data.items_unavailable)throw new Error('카페24에서 주문상품 포함 데이터를 제공하지 않았습니다.');
+       state.orders.push(...data.orders);offset+=data.orders.length;scanned+=data.orders.length;state.timestamp=data.checked_at;
+       $('bar').style.width=Math.min(99,(finished+(offset/(offset+LIMIT+1)))/parts.length*100)+'%';
+       $('progressText').textContent=scanned+'건 조회 · '+part.start+' ~ '+part.end;
+       $('scanNote').textContent='선택기간 주문 '+scanned+'건 불러오는 중';$('loadingDetail').textContent=part.start+' ~ '+part.end+' · '+scanned+'건 조회';render();
+       ended=!data.has_more||data.orders.length===0;
+       if(!ended)await sleep(420);
+     }
+     finished++;
+     $('bar').style.width=(finished/parts.length*100)+'%';
    }
+   state.complete=true;
  }catch(error){state.reason=signal.aborted?'사용자 중단':error.message}
  finally{
   state.busy=false;state.controller=null;state.partial=!state.complete;
