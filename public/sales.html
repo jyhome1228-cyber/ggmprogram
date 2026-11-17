@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>건강미 GGM OPS | 판매액 분석</title><link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
+<style>
+:root{--brand:#667f89;--ink:#263d46;--muted:#819198;--line:#e0e9ea;--bg:#f7f9f9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}.layout{min-height:100vh;display:flex}
+.side{width:232px;flex-shrink:0;background:#f0f5f5;border-right:1px solid var(--line);padding:26px 13px}
+.brand{padding:0 5px 29px}.lockup{display:flex;align-items:center;gap:8px}.mark{width:42px;height:67px;object-fit:contain}.wordmark{width:129px;height:33px;object-fit:contain}
+.brand small{display:block;margin-top:12px;font-size:10px;font-weight:750;color:#8099a0;letter-spacing:.8px}
+.side a{display:block;padding:12px;color:#5b747d;text-decoration:none;border-radius:8px;font-weight:650;margin:3px 0}.side a.active{background:#dce9ea;color:#34535d}
+.main{min-width:0;flex:1}.top{padding:22px 36px;background:#fff;border-bottom:1px solid var(--line);color:#8b9ba1;font-size:12px}
+.content{max-width:1530px;margin:auto;padding:36px 34px 70px}.eyebrow{color:#718a92;letter-spacing:1.5px;font-size:11px;font-weight:800}
+h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p{margin:0;color:#82939a}
+.head{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;flex-wrap:wrap}.btn{border:1px solid #d9e4e6;background:#fff;color:#45616b;border-radius:8px;padding:9px 15px;min-height:40px;font-size:12px;font-weight:750}.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}.btn:disabled{opacity:.5;cursor:default}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:19px 21px}.controls label{font-size:12px;color:#708690;display:flex;gap:7px;align-items:center}.controls input,.controls select{border:1px solid #d8e3e6;border-radius:7px;min-height:40px;padding:8px 10px;background:white;color:#34505b}
+.panel{background:#fff;border:1px solid var(--line);border-radius:13px;margin-top:20px;overflow:hidden}.notice{border:1px solid #dae5e7;background:#edf4f4;color:#5a7480;font-size:12px;padding:14px 17px;border-radius:9px;margin-top:17px;line-height:1.8}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:22px}.stat{background:#fff;border:1px solid var(--line);border-radius:11px;padding:23px 19px}.stat .label{font-size:12px;color:#758c94}.stat .val{font-size:26px;font-weight:800;letter-spacing:-.65px;margin-top:10px}.stat .hint{font-size:11px;color:#92a2a7;margin-top:6px}
+.section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:22px;border-bottom:1px solid var(--line)}
+.seg{display:flex;gap:4px;padding:4px;background:#f1f5f5;border-radius:9px}.seg button{border:0;background:transparent;border-radius:7px;padding:9px 17px;color:#6e8790;font-size:12px;font-weight:700}.seg button.active{background:white;color:#3d606b;box-shadow:0 1px 5px #41596720}
+.chart-scroll{overflow-x:auto;padding:22px}.chart{min-width:730px;display:flex;gap:6px;align-items:end;height:290px;border-bottom:1px solid #dce7e9;padding:20px 4px 0}
+.bar-cell{flex:1 0 21px;min-width:21px;display:flex;align-items:stretch;height:100%;flex-direction:column;justify-content:flex-end;gap:6px;background:none;border:0;color:#667e86;padding:0;text-align:center}.bar{min-height:3px;border-radius:4px 4px 0 0;background:#a8bac0;transition:background .18s}.bar-cell.active .bar,.bar-cell:hover .bar{background:#667f89}.bar-cell.active .caption{color:#385862;font-weight:800}
+.caption{font-size:10px;white-space:nowrap;display:block;min-height:18px}.amount-label{font-size:10px;white-space:nowrap;min-height:17px;color:#617a82}
+.table-scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th{text-align:left;background:#f7faf9;color:#799098;font-size:11px;padding:14px 18px}td{padding:15px 18px;border-bottom:1px solid #edf1f2;font-size:12px}tbody tr:last-child td{border-bottom:0}.strong{color:#436472;font-weight:800}.empty{text-align:center;padding:55px 16px;color:#8799a0}
+.progress{height:7px;background:#e2ecee;border-radius:7px;overflow:hidden;margin:0 21px 8px}.progress-fill{height:100%;width:0%;background:#667f89;transition:width .2s}.progress-wrap{padding-bottom:17px}.progress-wrap span{padding:0 21px;font-size:12px;color:#748890}
+.spinner{width:18px;height:18px;border:3px solid #dce8e9;border-top-color:#667f89;border-radius:50%;display:inline-block;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}@keyframes spin{to{transform:rotate(360deg)}}
+.footer{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:18px 21px;border-top:1px solid var(--line)}
+#message{font-size:12px;color:#718890}.error{color:#ab554d!important}
+@media(max-width:950px){.side{width:76px;padding:18px 7px}.wordmark,.brand small{display:none}.mark{width:40px;height:56px}.side a{font-size:11px;padding:12px 7px}.stats{grid-template-columns:repeat(2,1fr)}.content{padding:26px 18px}.top{padding:22px 18px}}
+@media(max-width:550px){.side{width:55px}.mark{width:30px;height:45px}.side a{font-size:9px}.stats{gap:8px}.stat{padding:15px}.stat .val{font-size:19px}.content{padding:20px 11px}.chart-scroll{padding:14px}}
+</style></head><body>
+<div class="layout"><aside class="side"><div class="brand"><div class="lockup"><img src="/assets/geonganmi-mark.svg" alt="" class="mark"><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI" class="wordmark"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
+<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html" class="active">판매액·매출 분석</a><a href="/shipping.html">배송 점검</a></aside>
+<div class="main"><div class="top">건강미 운영센터 / 판매액·매출 분석</div>
+<main class="content"><div class="head"><div><div class="eyebrow">SALES ANALYTICS</div><h1>판매액·매출 분석</h1><p>일자별·주간별 주문금액 흐름과 해당 기간 주문내역을 확인합니다.</p></div><button class="btn" id="csv" disabled>현재 상세 주문 엑셀 (CSV)</button></div>
+<section class="panel"><div class="controls"><label>기간 <select id="quick"><option value="7" selected>최근 7일</option><option value="14">최근 14일</option><option value="30">최근 30일</option><option value="custom">직접 선택</option></select></label>
+<label>시작일 <input type="date" id="startDate"></label><label>종료일 <input type="date" id="endDate"></label><button class="btn primary" id="scan">조회</button><button class="btn" id="stop" disabled>중단</button><span id="message">자동 조회 준비 중</span></div>
+<div id="progressWrap" class="progress-wrap" hidden><div class="progress"><div class="progress-fill" id="progressFill"></div></div><span id="progressText">준비 중</span></div></section>
+<div class="stats"><div class="stat"><div class="label">결제완료 주문금액 합계 (참고)</div><div class="val" id="gross">—</div><div class="hint">취소 주문 제외 · 부분취소/환불 미정산</div></div>
+<div class="stat"><div class="label">결제완료 주문 건수</div><div class="val" id="paidCount">—</div><div class="hint">조회된 주문 범위 기준</div></div>
+<div class="stat"><div class="label">취소 표기 주문</div><div class="val" id="cancelCount">—</div><div class="hint">별도 집계 · 환불액 미산정</div></div>
+<div class="stat"><div class="label">불러온 전체 주문</div><div class="val" id="orderCount">—</div><div class="hint">최대 500건 · 제한 초과 시 부분 조회</div></div></div>
+<section class="panel"><div class="section-head"><div><h2>기간별 판매액 추이</h2><div id="graphCaption" class="meta">그래프 날짜를 클릭하면 주문 내역을 표시합니다.</div></div>
+<div class="seg"><button id="daily" class="active" type="button">일별</button><button id="weekly" type="button">주간별</button></div></div>
+<div class="chart-scroll"><div id="chart" class="chart"><div class="empty">조회 중입니다.</div></div></div></section>
+<section class="panel"><div class="section-head"><h2 id="selectionTitle">선택 기간 주문내역</h2><button id="allDates" class="btn">전체 기간 보기</button></div>
+<div class="table-scroll"><table><thead><tr><th>주문번호</th><th>주문자명</th><th>주문일시</th><th>결제상태</th><th>취소여부</th><th>주문금액</th><th>집계 포함</th></tr></thead>
+<tbody id="rows"><tr><td colspan="7" class="empty">조회 중입니다.</td></tr></tbody></table></div>
+<div class="footer"><span id="rowCount" class="meta">—</span><span class="meta">주문번호와 주문금액은 카페24 실데이터 · 읽기 전용</span></div></section>
+<div class="notice">이 화면의 판매액은 <strong>주문일 기준 결제완료 주문금액</strong>을 더한 참고 수치입니다. '취소'로 표시된 주문은 합산에서 제외하지만, 부분취소·반품·추가환불·정산수수료·실입금액은 반영하지 않습니다. 따라서 회계상 확정매출이나 PG 정산액으로 사용하면 안 됩니다. 한 번에 최대 500건의 주문만 조회하며 조회 실패 또는 한도 도달 시 결과를 <strong>부분 조회</strong>로 표시합니다.</div>
+</main></div></div>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id),LIMIT=50,MAX=500;
+const state={orders:[],complete:false,busy:false,controller:null,range:null,mode:'daily',selection:null,reason:''};
+const currency=n=>Number(n).toLocaleString('ko-KR')+'원';
+const day=o=>String(o.order_date||'').slice(0,10);
+function dayKST(time){return new Date(time+9*3600000).toISOString().slice(0,10)}
+function preset(days){let now=Date.now();return {start:dayKST(now-(days-1)*86400000),end:dayKST(now)}}
+function selectedRange(){
+ const start=$('startDate').value,end=$('endDate').value;
+ if(!start||!end||start>end)throw Error('시작일과 종료일을 확인해주세요.');
+ const t1=Date.parse(start+'T00:00:00Z'),t2=Date.parse(end+'T00:00:00Z');
+ if(!Number.isFinite(t1)||!Number.isFinite(t2)||t2-t1>29*86400000)throw Error('조회기간은 최대 30일입니다.');
+ if(end>dayKST(Date.now())||t1<Date.now()-366*86400000)throw Error('조회 기간은 최근 1년 이내여야 합니다.');
+ return {start,end};
+}
+const canceled=o=>String(o.canceled||'').toUpperCase()==='T'||/^C[0-9]{2}$/.test(String(o.order_status||''));
+const included=o=>o.payment_status==='T'&&!canceled(o)&&Number.isFinite(Number(o.amount));
+function bucketWeek(date){
+ const dt=new Date(date+'T00:00:00Z'),wd=dt.getUTCDay(),offset=(wd+6)%7;
+ return new Date(dt.getTime()-offset*86400000).toISOString().slice(0,10);
+}
+function dateSeries(start,end){
+ const result=[];let cur=Date.parse(start+'T00:00:00Z'),last=Date.parse(end+'T00:00:00Z');
+ while(cur<=last){result.push(new Date(cur).toISOString().slice(0,10));cur+=86400000}return result;
+}
+function aggregated(){
+ const keys=dateSeries(state.range.start,state.range.end);
+ const map=new Map();
+ for(const d of keys){const key=state.mode==='daily'?d:bucketWeek(d);if(!map.has(key))map.set(key,{key,dates:[],total:0,orders:0});map.get(key).dates.push(d)}
+ for(const o of state.orders){const d=day(o);if(d<state.range.start||d>state.range.end)continue;const key=state.mode==='daily'?d:bucketWeek(d),item=map.get(key);if(!item)continue;
+ if(included(o)){item.total+=Number(o.amount);item.orders++;}
+ }
+ return [...map.values()];
+}
+function renderChart(){
+ const target=$('chart');target.replaceChildren();if(!state.range)return;
+ const series=aggregated(),max=Math.max(1,...series.map(x=>x.total));
+ if(!series.length){target.textContent='조회된 그래프가 없습니다.';return}
+ for(const s of series){
+   const b=document.createElement('button');b.className='bar-cell';b.type='button';
+   if(state.selection===s.key)b.classList.add('active');
+   const val=document.createElement('span');val.className='amount-label';val.textContent=s.total>=1000000?(s.total/10000).toFixed(0)+'만':s.total>=1000?Math.round(s.total/1000)+'천':String(s.total);
+   const bar=document.createElement('span');bar.className='bar';bar.style.height=Math.max(3,s.total/max*205)+'px';
+   const label=document.createElement('span');label.className='caption';label.textContent=state.mode==='daily'?s.key.slice(5):s.key.slice(5)+' 주';
+   b.title=s.dates[0]+' ~ '+s.dates[s.dates.length-1]+' · '+currency(s.total)+' · '+s.orders+'건';
+   b.append(val,bar,label);b.addEventListener('click',()=>{state.selection=s.key;renderChart();renderOrders()});target.append(b);
+ }
+ $('graphCaption').textContent=state.mode==='daily'?'막대를 클릭하면 해당 날짜 주문만 표시':'막대를 클릭하면 해당 주간 주문만 표시';
+}
+function visibleOrders(){
+ if(!state.selection)return state.orders;
+ return state.orders.filter(o=>(state.mode==='daily'?day(o):bucketWeek(day(o)))===state.selection);
+}
+function td(row,value,cls){let c=document.createElement('td');c.textContent=value??'—';if(cls)c.className=cls;row.append(c)}
+function renderOrders(){
+ const list=visibleOrders(),tbody=$('rows');tbody.replaceChildren();
+ $('selectionTitle').textContent=!state.selection?'선택 기간 전체 주문내역':state.mode==='daily'?state.selection+' 주문내역':state.selection+' 시작 주간 주문내역';
+ if(!list.length){let r=document.createElement('tr'),c=document.createElement('td');c.colSpan=7;c.className='empty';c.textContent=state.busy?'카페24 주문을 불러오는 중입니다.':'해당 날짜의 주문이 없습니다.';r.append(c);tbody.append(r)}
+ for(const o of list){
+  const r=document.createElement('tr');td(r,o.order_id,'strong');td(r,o.buyer_name||'미제공');td(r,String(o.order_date||'').slice(0,19).replace('T',' '));
+  td(r,o.payment_status==='T'?'결제완료':o.payment_status==='F'?'미결제':o.payment_status||'미제공');
+  td(r,canceled(o)?'취소 표기':'일반');td(r,o.amount==null?'—':currency(o.amount));td(r,included(o)?'포함':'미포함');tbody.append(r);
+ }
+ $('rowCount').textContent=list.length+'건 표시 · '+(state.complete?'전체 기간 조회 완료':'부분 조회')+' · 선택한 날짜에 한정';
+ $('csv').disabled=state.busy||!list.length;
+}
+function render(){
+ const paidOrders=state.orders.filter(included);
+ $('gross').textContent=currency(paidOrders.reduce((sum,o)=>sum+Number(o.amount),0));
+ $('paidCount').textContent=paidOrders.length+'건';
+ $('cancelCount').textContent=state.orders.filter(canceled).length+'건';
+ $('orderCount').textContent=state.orders.length+'건';
+ $('scan').disabled=state.busy;$('stop').disabled=!state.busy;$('quick').disabled=state.busy;
+ $('startDate').disabled=state.busy;$('endDate').disabled=state.busy;
+ renderChart();renderOrders();
+}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function scan(){
+ if(state.busy)return;
+ let range;try{range=selectedRange()}catch(e){$('message').textContent=e.message;$('message').className='error';return}
+ state.busy=true;state.controller=new AbortController();state.orders=[];state.complete=false;state.selection=null;state.reason='';state.range=range;
+ const signal=state.controller.signal;
+ $('message').className='';$('message').innerHTML='<span class="spinner"></span>주문 조회 중';
+ $('progressWrap').hidden=false;$('progressFill').style.width='0%';render();
+ let offset=0;
+ try{
+   while(offset<MAX){
+     if(signal.aborted)throw Error('사용자 중단');
+     const params=new URLSearchParams({start_date:range.start,end_date:range.end,offset:String(offset),limit:String(LIMIT)});
+     const response=await fetch('/api/orders?'+params,{cache:'no-store',credentials:'same-origin',signal});
+     let data={};try{data=await response.json()}catch{throw Error('API 응답 형식 오류')};
+     if(!response.ok)throw Error(data.error||'카페24 주문조회 실패 ('+response.status+')');
+     if(!Array.isArray(data.orders))throw Error('주문 목록 형식이 올바르지 않습니다.');
+     state.orders.push(...data.orders);offset+=data.orders.length;
+     $('progressFill').style.width=Math.min(100,offset/MAX*100)+'%';
+     $('progressText').textContent=offset+'건 불러옴 · 최대 '+MAX+'건';
+     render();
+     if(!data.has_more||!data.orders.length){state.complete=true;break}
+     if(offset>=MAX){state.reason='최대 500건 제한에 도달했습니다.';break}
+     await sleep(280);
+   }
+ }catch(err){state.reason=signal.aborted?'사용자 중단':err.message}
+ finally{
+   state.busy=false;state.controller=null;
+   if(state.complete)$('progressFill').style.width='100%';
+   $('message').textContent=(state.complete?'조회 완료':'부분 조회')+' · '+state.orders.length+'건'+(state.reason?' · '+state.reason:'');
+   $('message').className=state.reason?'error':'';
+   $('progressText').textContent=state.complete?'조회 완료':state.reason||'부분 조회';
+   render();
+ }
+}
+function csvEscape(v){const s=String(v??'');const safe=/^[=+@\-]/.test(s)?'\t'+s:s;return '"'+safe.replace(/"/g,'""')+'"'}
+function csv(){
+ const rows=[['조회 시작일',state.range?.start||''],['조회 종료일',state.range?.end||''],['조회 범위',state.complete?'선택기간 전체':'부분 조회'],['그래프 선택',state.selection||'전체'],
+ ['주문번호','주문자명','주문일시','결제상태','취소표기','주문금액','매출참고 집계 포함'],
+ ...visibleOrders().map(o=>[o.order_id,o.buyer_name||'',o.order_date,o.payment_status,canceled(o)?'Y':'N',o.amount,included(o)?'Y':'N'])];
+ const content='\uFEFF'+rows.map(row=>row.map(csvEscape).join(',')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');
+ a.href=url;a.download='ggm-sales-'+(state.selection||'all')+'-'+dayKST(Date.now())+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function setQuick(){if($('quick').value==='custom')return;const v=preset(Number($('quick').value));$('startDate').value=v.start;$('endDate').value=v.end}
+$('quick').addEventListener('change',()=>{setQuick();if($('quick').value!=='custom')scan()});
+for(const id of ['startDate','endDate'])$(id).addEventListener('change',()=>{$('quick').value='custom'});
+$('scan').addEventListener('click',scan);
+$('stop').addEventListener('click',()=>state.controller?.abort());
+$('daily').addEventListener('click',()=>{state.mode='daily';state.selection=null;$('daily').classList.add('active');$('weekly').classList.remove('active');render()});
+$('weekly').addEventListener('click',()=>{state.mode='weekly';state.selection=null;$('weekly').classList.add('active');$('daily').classList.remove('active');render()});
+$('allDates').addEventListener('click',()=>{state.selection=null;render()});
+$('csv').addEventListener('click',csv);
+const initial=preset(7);$('startDate').value=initial.start;$('endDate').value=initial.end;$('startDate').max=initial.end;$('endDate').max=initial.end;
+scan();
+})();
+</script></body></html>
