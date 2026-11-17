@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>배송 점검 | GGM OPS</title>
+<style>
+:root{--navy:#14243c;--line:#e4eaf1;--bg:#f5f7fa;--ink:#192b45;--muted:#7b889b}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+button,select{font:inherit}button{cursor:pointer}
+.layout{display:flex;min-height:100vh}.side{background:var(--navy);color:#fff;width:226px;min-width:226px;padding:30px 15px}
+.brand{font-size:22px;font-weight:800;margin:0 12px 35px;letter-spacing:-.5px}.brand small{display:block;letter-spacing:1.7px;color:#91a3be;font-size:10px}
+.side a{display:block;text-decoration:none;padding:13px 14px;color:#bfcee2;font-weight:650;border-radius:8px}.side a.active{color:white;background:#304461}
+.main{flex:1;min-width:0}.top{background:white;border-bottom:1px solid var(--line);padding:23px 35px;color:#78879a;font-size:12px}
+.content{max-width:1450px;margin:auto;padding:39px 35px}h1{font-size:30px;letter-spacing:-1px;margin:7px 0}p{margin:0;color:#7b889b}
+.eyebrow{font-size:11px;color:#7085a0;font-weight:800;letter-spacing:1.4px}.heading{display:flex;gap:18px;align-items:center;justify-content:space-between;margin-bottom:24px}
+.btn{border:1px solid #dce4ef;background:white;border-radius:8px;padding:10px 16px;font-weight:700;color:#31465f;min-height:40px}.btn.dark{background:var(--navy);color:#fff;border-color:var(--navy)}.btn:disabled{opacity:.5;cursor:default}
+.panel{background:white;border:1px solid var(--line);border-radius:13px;margin-top:20px;overflow:hidden}
+.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:22px;border-bottom:1px solid var(--line)}.filters select{border:1px solid #dce4ef;border-radius:7px;padding:10px;background:white}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.stat{background:white;border:1px solid var(--line);border-radius:11px;padding:22px}.stat .label{color:#7a8aa1;font-size:12px}.stat .value{font-weight:800;font-size:30px;margin-top:10px}
+.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th{background:#f8fafc;text-align:left;color:#73859d;font-size:11px;padding:15px 18px}td{padding:17px 18px;border-bottom:1px solid #eef1f6;font-size:12px}tbody tr:last-child td{border-bottom:0}
+.badge{border-radius:6px;display:inline-block;padding:6px 10px;background:#f0f3f8;color:#5b6a7d;font-weight:750;font-size:11px}.badge.review{background:#fff0e6;color:#b25a24}.badge.watch{background:#fff6df;color:#9c761d}.badge.unknown{background:#eff0f3;color:#667084}.badge.ok{background:#e9f7ee;color:#23794d}
+.order{font-weight:750;color:#273f62}.detail{color:#718095;white-space:normal;min-width:210px}
+.note{margin-top:16px;border:1px solid #dce6f6;border-radius:8px;background:#eff4fc;padding:14px 17px;color:#5b7390;font-size:12px;line-height:1.8}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 22px;border-top:1px solid var(--line);color:#8795a8;font-size:12px}
+.loading{text-align:center;color:#8c9aae;padding:65px 20px}.link{color:#324c70;text-decoration:underline;text-underline-offset:3px;font-weight:700}
+@media(max-width:850px){.side{width:80px;min-width:80px;padding:20px 8px}.brand{font-size:13px;margin:0 0 20px}.brand small{display:none}.side a{font-size:11px;padding:12px 7px}.stats{grid-template-columns:repeat(2,1fr)}.content{padding:26px 17px}.top{padding:17px}.heading{align-items:flex-start;flex-direction:column}}
+@media(max-width:500px){.side{width:54px;min-width:54px}.brand{font-size:10px}.side a{font-size:9px;word-break:break-all}.stat{padding:14px}.stat .value{font-size:25px}}
+</style></head><body>
+<div class="layout"><aside class="side"><div class="brand">GGM OPS<small>COMMERCE OPERATIONS</small></div><a href="/">주문 대시보드</a><a href="/shipping.html" class="active">배송 점검</a></aside>
+<div class="main"><header class="top">건강미 운영센터 / 배송 점검 · 카페24 ggmspa</header>
+<main class="content"><div class="heading"><div><div class="eyebrow">SHIPPING REVIEW</div><h1>배송·누락 의심 점검</h1><p>카페24 송장 및 배송상태를 조회해 운영자가 확인할 주문을 분류합니다.</p></div><button id="reload" class="btn dark">현재 구간 다시 검사</button></div>
+<div class="stats"><div class="stat"><div class="label">검사한 주문</div><div class="value" id="scanned">—</div></div>
+<div class="stat"><div class="label">확인 필요</div><div class="value" id="review">—</div></div>
+<div class="stat"><div class="label">관찰</div><div class="value" id="watch">—</div></div>
+<div class="stat"><div class="label">판정 보류</div><div class="value" id="unknown">—</div></div></div>
+<section class="panel"><div class="filters"><label>조회 기간 <select id="days"><option value="3">최근 3일</option><option value="7" selected>최근 7일</option><option value="14">최근 14일</option><option value="30">최근 30일</option></select></label>
+<label>경과 기준 <select id="hours"><option value="12">12시간</option><option value="24" selected>24시간</option><option value="48">48시간</option><option value="72">72시간</option></select></label>
+<label>결과 <select id="level"><option value="">전체</option><option value="review">확인 필요</option><option value="watch">관찰</option><option value="unknown">판정 보류</option><option value="ok">진행 확인</option><option value="excluded">제외</option></select></label>
+<span id="stamp" style="color:#8392a6;font-size:11px">API 요청 대기</span></div>
+<div class="tablewrap"><table><thead><tr><th>주문번호</th><th>주문자</th><th>주문 일시</th><th>배송상태</th><th>송장번호</th><th>분류</th><th>판정 근거</th></tr></thead><tbody id="rows"><tr><td colspan="7" class="loading">검사를 시작합니다.</td></tr></tbody></table></div>
+<div class="foot"><span id="range">현재 페이지의 주문만 검사합니다.</span><div><button id="prev" class="btn" disabled>이전 8건</button> <button id="next" class="btn" disabled>다음 8건</button></div></div></section>
+<div class="note">이 화면은 실제 배송 누락을 확정하지 않습니다. 카페24 주문 상태 및 송장 데이터에 따른 <strong>점검 후보</strong>만 표시하며, 휴무일·예약출고·부분배송·취소 시점 등은 운영자가 확인해야 합니다. 한 번에 최대 8건을 검사하고, 전체 기간의 누락 건수로 해석하면 안 됩니다. 읽기 전용이며 출고·송장 등록·주문 수정은 수행하지 않습니다.</div>
+</main></div></div>
+<script>
+(() => {
+'use strict';
+const el=id=>document.getElementById(id);
+const state={offset:0,limit:8,busy:false,hasMore:false,orders:[],summary:null};
+const statusName=v=>({F:'배송전',M:'배송중',T:'배송완료',W:'배송보류',X:'발주전'})[v]||(v?'코드 '+v:'미제공');
+const time=v=>v?String(v).slice(0,19).replace('T',' '):'—';
+function td(tr,v,cls){const d=document.createElement('td');d.textContent=v??'—';if(cls)d.className=cls;tr.append(d);return d}
+function render() {
+  const body=el('rows');body.replaceChildren();
+  const level=el('level').value;
+  const list=state.orders.filter(o=>!level||o.assessment?.level===level);
+  if(!list.length){const tr=document.createElement('tr');const cell=td(tr,state.orders.length?'선택한 분류에 해당하는 주문이 없습니다.':'표시할 주문이 없습니다.','loading');cell.colSpan=7;body.append(tr)}
+  for(const o of list){
+    const tr=document.createElement('tr');td(tr,o.order_id,'order');td(tr,o.buyer_name||'미제공');td(tr,time(o.order_date));td(tr,statusName(o.shipping_status));
+    td(tr,o.shipments?.map(p=>p.tracking_no).filter(Boolean).join(', ')||'미등록');
+    const col=document.createElement('td'),badge=document.createElement('span');badge.className='badge '+(o.assessment?.level||'unknown');badge.textContent=o.assessment?.label||'판정 보류';col.append(badge);tr.append(col);
+    td(tr,o.assessment?.detail||'정보 부족','detail');body.append(tr);
+  }
+  el('scanned').textContent=String(state.orders.length);
+  el('review').textContent=String(state.summary?.review??'—');
+  el('watch').textContent=String(state.summary?.watch??'—');
+  el('unknown').textContent=String(state.summary?.unknown??'—');
+  el('range').textContent=state.orders.length?(state.offset+1)+'~'+(state.offset+state.orders.length)+'번째 주문 검사 · 선택 구간 내 분류':'검사한 주문 없음';
+  el('prev').disabled=state.busy||state.offset===0;el('next').disabled=state.busy||!state.hasMore;
+}
+async function load() {
+  if(state.busy)return;
+  state.busy=true;el('reload').disabled=true;el('next').disabled=true;el('prev').disabled=true;
+  el('stamp').textContent='카페24 송장 상태 확인 중...';
+  try {
+    const params=new URLSearchParams({days:el('days').value,hours:el('hours').value,offset:String(state.offset),limit:String(state.limit)});
+    const res=await fetch('/api/shipping-review?'+params,{cache:'no-store',credentials:'same-origin'});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'검사 실패 (HTTP '+res.status+')');
+    state.orders=data.orders||[];state.summary=data.summary||null;state.hasMore=!!data.has_more;
+    el('stamp').textContent='최근 검사 '+new Date(data.checked_at).toLocaleTimeString('ko-KR');
+  } catch(e) {
+    state.orders=[];state.summary=null;state.hasMore=false;
+    el('stamp').textContent='검사 실패: '+e.message;
+  } finally {state.busy=false;el('reload').disabled=false;render()}
+}
+el('days').addEventListener('change',()=>{state.offset=0;load()});
+el('hours').addEventListener('change',()=>{state.offset=0;load()});
+el('level').addEventListener('change',render);
+el('reload').addEventListener('click',load);
+el('prev').addEventListener('click',()=>{state.offset=Math.max(0,state.offset-state.limit);load()});
+el('next').addEventListener('click',()=>{state.offset+=state.limit;load()});
+load();
+})();
+</script></body></html>
