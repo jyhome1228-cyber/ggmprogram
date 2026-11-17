@@ -69,12 +69,32 @@ function amount(value) {
 }
 async function orders(url, env) {
   const days = safeInt(url.searchParams.get('days'), 30, 1, 30);
+  const startParam = url.searchParams.get('start_date');
+  const endParam = url.searchParams.get('end_date');
+  let startDate = kstDay(Date.now() - (days - 1) * 86400000);
+  let endDate = kstDay(Date.now());
+  if (startParam !== null || endParam !== null) {
+    if (!startParam || !endParam || !/^\d{4}-\d{2}-\d{2}$/.test(startParam) || !/^\d{4}-\d{2}-\d{2}$/.test(endParam)) {
+      return respond({ error: '날짜는 시작일과 종료일을 함께 입력해주세요.' }, 400);
+    }
+    const start = Date.parse(startParam + 'T00:00:00Z');
+    const end = Date.parse(endParam + 'T00:00:00Z');
+    if (!Number.isFinite(start) || !Number.isFinite(end) ||
+      new Date(start).toISOString().slice(0,10) !== startParam ||
+      new Date(end).toISOString().slice(0,10) !== endParam ||
+      start > end || end - start > 29 * 86400000 ||
+      endParam > kstDay(Date.now()) || start < Date.now() - 366 * 86400000) {
+      return respond({ error: '조회 기간은 최근 1년 이내에서 최대 30일로 선택해주세요.' }, 400);
+    }
+    startDate = startParam;
+    endDate = endParam;
+  }
   const limit = safeInt(url.searchParams.get('limit'), 50, 1, 100);
   const offset = safeInt(url.searchParams.get('offset'), 0, 0, 8000);
   const token = await currentToken(env);
   const query = new URL(BASE + '/api/v2/admin/orders');
-  query.searchParams.set('start_date', kstDay(Date.now() - days * 86400000));
-  query.searchParams.set('end_date', kstDay(Date.now()));
+  query.searchParams.set('start_date', startDate);
+  query.searchParams.set('end_date', endDate);
   query.searchParams.set('limit', String(limit));
   query.searchParams.set('offset', String(offset));
   // Cafe24 removed buyer_name from the plain orders response. Embed the buyer resource.
@@ -105,7 +125,7 @@ async function orders(url, env) {
   const payload = await api.json();
   const list = Array.isArray(payload.orders) ? payload.orders : [];
   return respond({
-    mall_id: MALL_ID, days, limit, offset, count: list.length, has_more: list.length === limit,
+    mall_id: MALL_ID, days, start_date: startDate, end_date: endDate, limit, offset, count: list.length, has_more: list.length === limit,
     total_count: await countPromise,
     orders: list.map(o => ({
       order_id: o.order_id || '',
