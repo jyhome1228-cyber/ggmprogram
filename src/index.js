@@ -126,6 +126,94 @@ async function orders(url, env) {
     }))
   });
 }
+
+function isCanceled(o) {
+  // Cafe24 canceled is typically T/F; never infer cancellation from a zero amount.
+  return String(o.canceled || '').toUpperCase() === 'T' || /^C[0-9]{2}$/.test(String(o.order_status || ''));
+}
+function shippingReview(o, shipments, failed, hours) {
+  const tracking = shipments.some(p => typeof p.tracking_no === 'string' && p.tracking_no.trim());
+  const status = String(o.shipping_status || '');
+  const ageMs = Date.now() - Date.parse(o.order_date || '');
+  const late = Number.isFinite(ageMs) && ageMs >= hours * 3600000;
+  const canceled = isCanceled(o);
+  if (failed) return { level: 'unknown', label: '배송정보 확인 불가', detail: '카페24 송장 조회 요청 실패' };
+  if (canceled && tracking) return { level: 'review', label: '취소·송장 동시 존재', detail: '실제 출고 여부 및 취소 시점 확인 필요' };
+  if (canceled) return { level: 'excluded', label: '취소 관련', detail: '누락 의심 산정 제외' };
+  if (o.paid !== 'T') return { level: 'excluded', label: '결제 미완료/미확인', detail: '누락 의심 산정 제외' };
+  if (status === 'T' || status === 'M' || shipments.some(p => ['shipping','shipped'].includes(p.status))) {
+    if (!tracking) return { level: 'review', label: '배송중·완료 / 송장 미확인', detail: '카페24 배송 상태와 송장 입력 여부 대조' };
+    return { level: 'ok', label: '배송 진행 확인', detail: '송장 존재' };
+  }
+  if (status === 'F' && !tracking && late) return { level: 'review', label: '장기 배송전 · 송장 없음', detail: '결제완료 후 ' + hours + '시간 이상 경과 (휴무일 미반영)' };
+  if (status === 'F' && !tracking) return { level: 'watch', label: '배송전', detail: '송장 미등록 · 기준 시간 미경과' };
+  if (status === 'W') return { level: 'watch', label: '배송보류', detail: '보류 사유 확인 필요' };
+  if (status === 'X') return { level: 'watch', label: '발주전', detail: '카페24 발주상태 확인' };
+  return { level: 'unknown', label: '판정 보류', detail: '주문 배송상태가 제공되지 않음 · 추정하지 않음' };
+}
+async function shippingReviewOrders(url, env) {
+  const days = safeInt(url.searchParams.get('days'), 7, 1, 30);
+  const limit = safeInt(url.searchParams.get('limit'), 8, 1, 8);
+  const offset = safeInt(url.searchParams.get('offset'), 0, 0, 8000);
+  const hours = safeInt(url.searchParams.get('hours'), 24, 1, 168);
+  const token = await currentToken(env);
+  const headers = { Authorization: 'Bearer ' + token, 'X-Cafe24-Api-Version': API_VERSION };
+  const query = new URL(BASE + '/api/v2/admin/orders');
+  query.searchParams.set('start_date', kstDay(Date.now() - days * 86400000));
+  query.searchParams.set('end_date', kstDay(Date.now()));
+  query.searchParams.set('limit', String(limit));
+  query.searchParams.set('offset', String(offset));
+  query.searchParams.set('embed', 'buyer');
+  const res = await fetch(query, { headers });
+  if (!res.ok) return respond({ error: '카페24 주문 조회 실패', http_status: res.status }, 502);
+  const result = await res.json();
+  const orders = Array.isArray(result.orders) ? result.orders : [];
+  // Limit each review to 8 orders and a maximum of two concurrent shipment calls.
+  const reviewed = [];
+  for (let i = 0; i < orders.length; i += 2) {
+    const chunk = await Promise.all(orders.slice(i, i + 2).map(async o => {
+      let shipments = [], failed = false;
+      try {
+        const shipRes = await fetch(BASE + '/api/v2/admin/orders/' + encodeURIComponent(o.order_id) + '/shipments', { headers });
+        if (!shipRes.ok) failed = true;
+        else {
+          const data = await shipRes.json();
+          shipments = Array.isArray(data.shipments) ? data.shipments.map(p => ({
+            tracking_no: p.tracking_no ?? null,
+            status: p.status ?? null,
+            shipping_company_code: p.shipping_company_code ?? null,
+            shipping_code: p.shipping_code ?? null
+          })) : [];
+        }
+      } catch { failed = true; }
+      const buyer = Array.isArray(o.buyer) ? o.buyer[0] : o.buyer;
+      return {
+        order_id: o.order_id,
+        buyer_name: typeof buyer?.name === 'string' ? buyer.name : null,
+        order_date: o.order_date,
+        paid: o.paid ?? null,
+        shipping_status: o.shipping_status ?? null,
+        canceled: o.canceled ?? null,
+        shipments,
+        assessment: shippingReview(o, shipments, failed, hours)
+      };
+    }));
+    reviewed.push(...chunk);
+  }
+  return respond({
+    days, hours, offset, limit, count: reviewed.length,
+    has_more: reviewed.length === limit,
+    checked_at: new Date().toISOString(),
+    // Not an aggregate of all orders in the selected period.
+    summary: {
+      review: reviewed.filter(x => x.assessment.level === 'review').length,
+      watch: reviewed.filter(x => x.assessment.level === 'watch').length,
+      unknown: reviewed.filter(x => x.assessment.level === 'unknown').length
+    },
+    orders: reviewed
+  });
+}
+
 export default {
   async fetch(request, env) {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
@@ -139,6 +227,7 @@ export default {
         return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token), checked_at: new Date().toISOString() });
       }
       if (url.pathname === '/api/orders') return await orders(url, env);
+      if (url.pathname === '/api/shipping-review') return await shippingReviewOrders(url, env);
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
         if (!/^\d{8}-\d{7,9}$/.test(orderId || '')) return respond({ error: '올바른 주문번호가 아닙니다.' }, 400);
