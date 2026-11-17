@@ -36,24 +36,24 @@
 <div class="layout"><aside class="side"><div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · OPERATIONS</small></div>
 <a href="/">주문 대시보드</a><a href="/explorer.html" class="active">주문자·제품 조회</a><a href="/shipping.html">배송 점검</a></aside>
 <div class="main"><div class="top">건강미 운영센터 / 주문자·제품 조회 · CAFE24 ggmspa</div>
-<main class="content"><div class="head"><div><div class="eyebrow">ORDER INSIGHTS</div><h1>주문자·제품별 주문 조회</h1><p>카페24 실제 주문과 상품구성을 바탕으로 기간별 검색합니다.</p></div><div class="seg"><button id="buyerTab" class="active" type="button">주문자 조회</button><button id="productTab" type="button">제품별 주문</button></div></div>
+<main class="content"><div class="head"><div><div class="eyebrow">ORDER INSIGHTS</div><h1>주문자·제품별 주문 조회</h1><p>접속하면 최근 30일 주문을 자동 조회합니다. 카페24 실제 주문과 상품구성을 바탕으로 검색합니다.</p></div><div class="seg"><button id="buyerTab" class="active" type="button">주문자 조회</button><button id="productTab" type="button">제품별 주문</button></div></div>
 <div class="summary"><div class="stat"><div class="label">조회된 주문</div><div class="value" id="orderCount">—</div></div>
 <div class="stat"><div class="label">주문자 수 (이름 기준)</div><div class="value" id="buyerCount">—</div></div>
 <div class="stat"><div class="label">제품 종류 (상품번호 기준)</div><div class="value" id="productCount">—</div></div></div>
 <section class="panel"><div class="controls"><label>기간 <select id="days"><option value="7">최근 7일</option><option value="14">최근 14일</option><option value="30" selected>최근 30일</option></select></label>
-<button class="btn primary" id="scan">선택기간 주문 조회</button><button class="btn" id="stop" disabled>조회 중단</button><button class="btn" id="download" disabled>현재 결과 CSV</button><span class="meta" id="scanNote">아직 조회하지 않았습니다.</span></div>
+<button class="btn primary" id="scan">선택기간 주문 조회</button><button class="btn" id="stop" disabled>조회 중단</button><button class="btn" id="download" disabled>현재 결과 CSV</button><span class="meta" id="scanNote">주문 자동 조회 준비 중...</span></div>
 <div class="progress-wrap" id="progressWrap" hidden><div class="progress"><div id="bar" class="bar"></div></div><span id="progressText">조회 준비</span></div></section>
 <section class="panel"><div class="tab-panel" id="buyerPanel"><div class="results-head"><h2>주문자 조회</h2><input class="search" id="buyerSearch" placeholder="주문자명 또는 주문번호 검색" type="search" aria-label="주문자명 또는 주문번호 검색"></div>
-<div class="table-scroll"><table><thead><tr><th>주문번호</th><th>주문자명</th><th>주문일시</th><th>제품/옵션</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="buyerRows"><tr><td colspan="6" class="empty">위에서 조회 버튼을 눌러주세요.</td></tr></tbody></table></div></div>
-<div class="tab-panel" id="productPanel" hidden><div class="results-head"><h2>제품별 주문리스트</h2><input class="search" id="productSearch" placeholder="제품명 검색" type="search" aria-label="제품명 검색"></div><div class="product-list" id="productRows"><div class="empty">조회한 제품이 없습니다.</div></div></div></section>
-<div class="warn">주문자 조회는 <strong>선택기간에 불러온 주문</strong>을 대상으로 하며, 서로 다른 동명이인은 별도로 식별하지 않습니다. 제품별 목록은 카페24 상품번호를 우선 기준으로 묶고 옵션별 주문·수량을 집계합니다. 최대 500건만 순차 조회하며 한도를 초과하거나 API 오류가 발생하면 <strong>부분 조회</strong>로 표시합니다. 고객 연락처와 주소는 표시하거나 저장하지 않고, 현재 조회 결과는 새로고침 시 사라집니다.</div>
+<div class="table-scroll"><table><thead><tr><th>주문번호</th><th>주문자명</th><th>주문일시</th><th>제품/옵션</th><th>결제상태</th><th>주문금액</th></tr></thead><tbody id="buyerRows"><tr><td colspan="6" class="empty">카페24 주문을 불러오는 중입니다.</td></tr></tbody></table></div></div>
+<div class="tab-panel" id="productPanel" hidden><div class="results-head"><h2>제품별 주문리스트</h2><input class="search" id="productSearch" placeholder="제품명 검색" type="search" aria-label="제품명 검색"></div><div class="product-list" id="productRows"><div class="empty">카페24 제품별 주문을 불러오는 중입니다.</div></div></div></section>
+<div class="warn">주문자 조회는 <strong>선택기간에 불러온 주문</strong>을 대상으로 하며, 서로 다른 동명이인은 별도로 식별하지 않습니다. 제품별 목록은 카페24 상품번호를 우선 기준으로 묶고 옵션별 주문·수량을 집계합니다. 접속 시 최근 30일 데이터를 자동 조회하며 최대 500건만 순차 조회합니다.  한도를 초과하거나 API 오류가 발생하면 <strong>부분 조회</strong>로 표시합니다. 고객 연락처와 주소는 표시하거나 저장하지 않고, 현재 조회 결과는 새로고침 시 사라집니다.</div>
 </main></div></div>
 <script>
 (() => {
 'use strict';
 const $=id=>document.getElementById(id);
 const MAX=500,LIMIT=50;
-const state={orders:[],busy:false,complete:false,partial:false,controller:null,reason:'',mode:'buyer',timestamp:null};
+const state={orders:[],busy:false,complete:false,partial:false,controller:null,reason:'',mode:'buyer',timestamp:null,hasLoaded:false};
 const fmt=x=>{const n=Number(x);return Number.isFinite(n)?n.toLocaleString('ko-KR')+'원':'—'};
 const date=x=>x?String(x).slice(0,19).replace('T',' '):'—';
 const paid=x=>x==='T'?'결제완료':x==='F'?'결제대기':x==='M'?'부분결제':x||'미제공';
@@ -79,7 +79,7 @@ function renderBuyers(){
   const body=$('buyerRows');body.replaceChildren();
   const query=$('buyerSearch').value.trim().toLocaleLowerCase('ko-KR');
   const list=state.orders.filter(o=>String(o.buyer_name||'').toLocaleLowerCase('ko-KR').includes(query)||o.order_id.toLocaleLowerCase('ko-KR').includes(query));
-  if(!list.length){resetRows('buyerRows',6,state.orders.length?'해당 이름 또는 주문번호의 주문이 없습니다.':'조회한 주문이 없습니다.');return}
+  if(!list.length){resetRows('buyerRows',6,state.orders.length?'해당 이름 또는 주문번호의 주문이 없습니다.':state.busy?'카페24 주문 데이터를 불러오는 중입니다.':state.reason?'조회 실패 · '+state.reason:'조회한 주문이 없습니다.');return}
   for(const o of list){
     const tr=document.createElement('tr');td(tr,o.order_id,'strong');td(tr,o.buyer_name||'미제공');td(tr,date(o.order_date));
     const items=(o.items||[]).map(item=>item.product_name+(item.option_label?' · '+item.option_label:'')+' × '+item.quantity).join(' / ');
@@ -90,7 +90,7 @@ function renderProducts(){
   const parent=$('productRows');parent.replaceChildren();
   const search=$('productSearch').value.trim().toLocaleLowerCase('ko-KR');
   const filtered=products().filter(x=>x.name.toLocaleLowerCase('ko-KR').includes(search));
-  if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent='일치하는 제품이 없습니다.';parent.append(empty);return}
+  if(!filtered.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=state.busy?'제품별 주문을 불러오는 중입니다.':state.reason&&!state.orders.length?'조회 실패 · '+state.reason:'일치하는 제품이 없습니다.';parent.append(empty);return}
   for(const p of filtered){
     const card=document.createElement('article');card.className='product';
     const h=document.createElement('h3');h.textContent=p.name;card.append(h);
@@ -125,7 +125,7 @@ function setMode(mode){
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 async function scan(){
  if(state.busy)return;
- state.busy=true;state.complete=false;state.partial=false;state.orders=[];state.reason='';state.controller=new AbortController();
+ state.busy=true;state.hasLoaded=true;state.complete=false;state.partial=false;state.orders=[];state.reason='';state.controller=new AbortController();
  const signal=state.controller.signal;
  $('progressWrap').hidden=false;$('bar').style.width='0%';$('scanNote').classList.remove('error');
  render();let offset=0;
@@ -178,6 +178,6 @@ $('productSearch').addEventListener('input',renderProducts);
 $('scan').addEventListener('click',scan);
 $('stop').addEventListener('click',()=>state.controller?.abort());
 $('download').addEventListener('click',exportCSV);
-render();setMode('buyer');
+render();setMode('buyer');scan();
 })();
 </script></body></html>
