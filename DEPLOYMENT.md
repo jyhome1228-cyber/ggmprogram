@@ -1,32 +1,22 @@
-# GitHub 자동 배포 안내 (GGM OPS)
+# GGM OPS Cloudflare 배포
 
-이 저장소는 기존 Cloudflare Worker **`ggm-ops`** 에 배포됩니다. GitHub Pages가 아닙니다.
+배포 방식: **Cloudflare Workers Builds (GitHub 기본 연결)**
 
-## 최초 1회 설정
+- Cloudflare Worker: `ggm-ops`
+- GitHub 저장소: `jyhome1228-cyber/ggmprogram`
+- 브랜치: `main`
+- 빌드 명령: 비움
+- 배포 명령: `npx wrangler deploy`
+- 프로젝트 루트: `/`
 
-GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret**에서 아래 두 항목을 등록합니다.
+GitHub 저장소의 새 커밋을 Cloudflare가 감지하면 자동 빌드 및 배포합니다. 기존에 등록했던 GitHub Actions 중복 배포는 제거했습니다.
 
-- `CLOUDFLARE_API_TOKEN`: Cloudflare 대시보드에서 생성하는 **Edit Cloudflare Workers** 권한의 최소 범위 API 토큰. 이 값은 **GitHub Secret에만 입력**하고 코드·채팅·스크린샷에 노출하지 않습니다.
-- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare 계정 ID (대시보드에서 확인)
+배포 여부는 Cloudflare > Workers & Pages > ggm-ops > **배포(Deployments)** 에서 최근 기록을 확인합니다. GitHub에 커밋이 있어도 Cloudflare 배포 내역에 보이지 않으면 운영 사이트가 갱신된 것이 아닙니다.
 
-Cloudflare 공식 안내: https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
+배포 전후 보존할 설정:
+- Secret: `CAFE24_CLIENT_ID`, `CAFE24_CLIENT_SECRET`
+- KV binding: `GGM_AUTH` → `ggm-ops-auth`
+- Cloudflare Access: 전체 Traffic 보호
+- Worker URL: https://ggm-ops.planus253.workers.dev/
 
-설정 후 **Actions → Deploy GGM OPS to Cloudflare → Run workflow** 를 실행하세요. 이후 `main`에 코드를 push하면 자동 배포됩니다.
-
-## 기존 설정 보존
-
-이 Workflow는 `wrangler deploy`를 통해 동일 이름의 기존 Worker를 배포합니다.
-
-배포 후 Cloudflare에서 아래 환경 구성이 그대로 있는지 반드시 확인합니다.
-- **Secrets**: `CAFE24_CLIENT_ID`, `CAFE24_CLIENT_SECRET`
-- **KV**: `GGM_AUTH` → `ggm-ops-auth`
-- **Access**: 전체 트래픽 보호 정책
-- **Worker URL**: https://ggm-ops.planus253.workers.dev/
-
-현재 인증 토큰은 기존 KV에 저장됩니다. 저장소 내에 Client Secret, OAuth token 또는 개인 고객정보를 넣지 않습니다.
-
-## CI/CD 관련 주의
-
-Cloudflare 대시보드 자체 GitHub 통합에 '연결 끊김'이 표시되어도 **GitHub Actions는 위 API 토큰으로 별도 인증**하기 때문에 실행할 수 있습니다. 중복 빌드를 피하려면 나중에 작동하지 않는 Cloudflare 기본 Git 빌드를 꺼둘 수 있습니다.
-
-**GitHub로 코드가 올라갔다는 사실만으로 Cloudflare에 실제 배포됐다는 뜻은 아닙니다.** Actions에서 녹색 완료를 확인하고 실제 사이트도 확인해야 합니다.
+토큰과 고객 개인정보는 GitHub에 기록하지 않습니다. 배포 후 API 401이 발생하면 기존 OAuth 토큰과 앱 권한/갱신 흐름을 확인합니다. 주문 수정 및 배송 처리는 현재 구현하지 않았습니다.
