@@ -199,7 +199,7 @@ function renderDetail(data,summary){
   ].filter(Boolean).join(' · ');
   box.append(name,info);ships.append(box);
  }
- for(const [key,label] of [['items','주문상품'],['receivers','수령자'],['shipments','배송송장']]){
+ for(const [key,label] of [['buyer','주문자'],['items','주문상품'],['receivers','수령자'],['shipments','배송송장']]){
   if(data.partial_errors?.[key])detailNote(label+' 추가 조회 실패: '+data.partial_errors[key]+' · 다른 정보는 정상적으로 표시했습니다.');
  }
 }
