@@ -212,7 +212,7 @@ async function scanOrders(run){
 
  }catch(e){reason=ctrl.signal.aborted?'사용자 중단':errorMessage(e)}
  finally{
-   if(run===state.run){button.disabled=false;stop.disabled=true;state.orderController=null;
+   if(run===state.run && state.orderController===ctrl){button.disabled=false;stop.disabled=true;state.orderController=null;
      if(complete)$('orderFill').style.width='100%';
      status.textContent=(complete?'선택 기간 조회 완료':'부분 조회')+' · 총 '+scanned+'건 확인 · 상품 주문 '+matched.size+'건'+(reason?' · '+reason:'');
      status.className='status'+(reason?' error':'');
