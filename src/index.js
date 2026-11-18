@@ -561,6 +561,12 @@ export default {
         return redirect('/?connected=1', { 'Set-Cookie': 'ggm_oauth=; Max-Age=0; Path=/oauth; HttpOnly; Secure; SameSite=Lax' });
       }
       // Assets serve the frontend only. No sensitive API values should be cached in assets.
+      // With html_handling=none, explicitly map the app root to the index asset.
+      // This prevents canonical .html redirects from forming login loops.
+      if (path === '/') {
+        const assetRequest = new Request(new URL('/index.html',request.url),request);
+        return env.ASSETS.fetch(assetRequest);
+      }
       return env.ASSETS.fetch(request);
     } catch (err) {
       const message = String(err?.message || '');
