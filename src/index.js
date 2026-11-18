@@ -465,7 +465,14 @@ export default {
         const cookie=auth.headers.get('Set-Cookie');
         if(!cookie)return sharedReply({error:'로그인 쿠키 발급 실패'},503);
         // Change the displayed URL without another network navigation.
-        const documentHtml=html.replace('</body>', '<script>history.replaceState(null,"","/");</script></body>');
+        const introMarkup='<div id="ggm-login-intro" role="status" aria-label="건강미 운영센터 시작" aria-live="off">'+
+          '<div class="ggm-intro-content"><img class="ggm-intro-symbol" src="/assets/geonganmi-mark.svg" alt="">'+
+          '<div class="ggm-intro-name">GEONGANMI</div><div class="ggm-intro-sub">COMMERCE OPERATIONS</div></div>'+
+          '<button type="button" class="ggm-intro-skip" aria-label="인트로 건너뛰기">건너뛰기</button></div>';
+        const documentHtml=html
+          .replace('</head>','<link rel="stylesheet" href="/assets/login-intro.css"></head>')
+          .replace('<body>','<body class="ggm-intro-pending">'+introMarkup)
+          .replace('</body>','<script src="/assets/login-intro.js" defer></script><script>history.replaceState(null,"","/");</script></body>');
         return new Response(documentHtml,{status:200,headers:{
           'Content-Type':'text/html; charset=utf-8',
           'Cache-Control':'no-store',
