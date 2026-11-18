@@ -13,7 +13,17 @@ async function signature(payload,key){
  return hex(await crypto.subtle.sign('HMAC',k,encode.encode(payload)));
 }
 function equal(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
-function secretsReady(env){return typeof env.GGM_SHARED_PASSWORD==='string'&&env.GGM_SHARED_PASSWORD.length>=7&&typeof env.GGM_BOOTSTRAP_KEY==='string'&&env.GGM_BOOTSTRAP_KEY.length>=32}
+// Temporary QA passphrase hash. NEVER use this exposed, low-entropy test password
+// as the sole security boundary for real customer/order information.
+const QA_SALT='ggm-qa-2026-v1-fixed-salt';
+const QA_HASH='0db69869faa0584862d29746173796f7b6ce1ca6d5f7217c2366a03f89fef8cc';
+async function verifyQaPassword(password){
+ if(typeof password!=='string'||password.length>128)return false;
+ const key=await crypto.subtle.importKey('raw',encode.encode(password),'PBKDF2',false,['deriveBits']);
+ const hash=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:encode.encode(QA_SALT),iterations:310000},key,256);
+ return equal(hex(hash),QA_HASH);
+}
+function secretsReady(env){return typeof env.GGM_BOOTSTRAP_KEY==='string'&&env.GGM_BOOTSTRAP_KEY.length>=32}
 function cookie(request){
  const match=(request.headers.get('Cookie')||'').split(';').map(x=>x.trim()).find(x=>x.startsWith(cookieName+'='));
  return match?.slice(cookieName.length+1)||'';
@@ -36,16 +46,20 @@ async function handleShared(request,env,path){
  if(request.method!=='POST')return reply({error:'지원하지 않는 요청입니다.'},405);
  if(request.headers.get('Origin')!==new URL(request.url).origin)return reply({error:'허용되지 않은 요청입니다.'},403);
  if(path==='/auth/shared/logout')return reply({ok:true},200,{'Set-Cookie':newCookie('',0)});
- if(path!=='/auth/shared/login')return reply({error:'경로를 찾을 수 없습니다.'},404);
+ if(path!=='/auth/shared/login'&&path!=='/auth/shared/open')return reply({error:'경로를 찾을 수 없습니다.'},404);
  const ip=request.headers.get('CF-Connecting-IP')||'unknown';
  const ipKey='ggm:login:attempts:'+await digest(ip);
  const attempts=Number(await env.GGM_AUTH.get(ipKey)||0);
  if(attempts>=5)return reply({error:'로그인 시도가 많습니다. 15분 후 다시 시도해주세요.'},429);
  let body;
- try{const raw=await request.text();if(raw.length>1024)throw Error();body=JSON.parse(raw)}catch{return reply({error:'입력 형식을 확인해주세요.'},400)}
+ try{
+   const raw=await request.text();
+   if(raw.length>1024)throw Error();
+   if(path==='/auth/shared/open')body=Object.fromEntries(new URLSearchParams(raw));
+   else body=JSON.parse(raw);
+ }catch{return reply({error:'입력 형식을 확인해주세요.'},400)}
  const actual=typeof body.password==='string'?body.password:'';
- const a=await digest(actual),b=await digest(env.GGM_SHARED_PASSWORD);
- if(!equal(a,b)){
+ if(!(await verifyQaPassword(actual))){
   await env.GGM_AUTH.put(ipKey,String(attempts+1),{expirationTtl:900});
   return reply({error:'비밀번호가 일치하지 않습니다.'},401);
  }
