@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow"><title>건강미 GGM OPS | 로그인</title>
+<meta name="robots" content="noindex,nofollow"><title>건강미 GGM OPS | 간편 로그인</title>
 <link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
 <style>
 :root{--brand:#667f89;--text:#2b424b;--line:#dbe5e7;--bg:#f5f8f8}*{box-sizing:border-box}
@@ -23,52 +23,11 @@ button{font:inherit;cursor:pointer}
 </style></head><body><main class="card">
 <div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
 <div class="eyebrow">GGM OPS · TEST ACCESS</div><h1>건강미 로그인</h1><p class="description">건강미 운영관리 시스템</p>
-<form id="form" hidden>
+<form method="POST" action="/auth/shared/open" id="form">
 <label for="password">공통 비밀번호</label>
-<input id="password" type="password" autocomplete="current-password" required>
-<button type="submit" class="primary" id="login">관리자 프로그램 열기</button>
+<input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+<button type="submit" class="primary">주문 대시보드 열기</button>
 </form>
-<button id="open" class="primary" type="button" hidden>주문 대시보드 열기</button>
-<button id="logout" class="secondary" type="button" hidden>로그아웃</button>
-<div id="status" class="status" role="status" aria-live="polite">로그인 상태 확인 중…</div>
+<p class="status">비밀번호를 입력하면 주문관리 화면이 바로 열립니다.</p>
 <div class="foot">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>개발 테스트용 관리자 접근 화면입니다.</div></div>
-</main><script>
-(() => {
-'use strict';
-const el=id=>document.getElementById(id);
-const status=el('status'),form=el('form'),button=el('login'),open=el('open'),logout=el('logout');
-function info(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
-function show(logged){
- form.hidden=logged;open.hidden=!logged;logout.hidden=!logged;
- button.disabled=false;open.disabled=false;
- info(logged?'로그인 상태가 유지되고 있습니다. 주문 대시보드로 이동할 수 있습니다.':'공통 비밀번호를 입력해주세요.');
-}
-async function session(){
- try{
-  const result=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-  show(result.ok);
- }catch{show(false);info('인증 상태 확인에 실패했습니다. 다시 로그인해주세요.',true)}
-}
-async function submit(e){
- e.preventDefault();button.disabled=true;info('비밀번호 확인 중…');
- try {
-  const response=await fetch('/auth/shared/login',{method:'POST',credentials:'same-origin',
-   headers:{'Content-Type':'application/json'},body:JSON.stringify({password:el('password').value})});
-  const result=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(result.error||'비밀번호 확인 실패');
-  const verified=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-  if(!verified.ok)throw Error('로그인 세션이 저장되지 않았습니다.');
-  el('password').value='';
-  show(true);
- }catch(err){info(err.message,true);button.disabled=false}
-}
-form.addEventListener('submit',submit);
-open.addEventListener('click',()=>{open.disabled=true;location.assign('/')});
-logout.addEventListener('click',async()=>{
- logout.disabled=true;
- try{await fetch('/auth/shared/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})}
- finally{logout.disabled=false;show(false);el('password').focus()}
-});
-session();
-})();
-</script></body></html>
+</main></body></html>
