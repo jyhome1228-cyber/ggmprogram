@@ -1,0 +1,33 @@
+/* Shared GGM OPS navigation. Single source of truth across all pages. */
+#ggm-shared-nav{flex:0 0 232px;width:232px;min-width:232px;background:#f0f5f5;border-right:1px solid #e0e9ea;padding:26px 13px;align-self:stretch;min-height:100vh;position:relative;z-index:50;font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#ggm-shared-nav .ggm-brand{padding:0 5px 25px}
+#ggm-shared-nav .ggm-lockup{display:flex;align-items:center;gap:8px}
+#ggm-shared-nav .ggm-mark{width:42px;height:67px;object-fit:contain}
+#ggm-shared-nav .ggm-wordmark{width:129px;height:33px;object-fit:contain}
+#ggm-shared-nav .ggm-caption{display:block;margin-top:11px;font-size:10px;letter-spacing:.7px;color:#8099a0;font-weight:750}
+#ggm-shared-nav .ggm-link{display:block;text-decoration:none;color:#5b747d;padding:12px;border-radius:8px;font-size:14px;font-weight:650;margin:3px 0;line-height:1.55}
+#ggm-shared-nav .ggm-link:hover{background:#e7eeee}
+#ggm-shared-nav .ggm-link.active{background:#dce9ea;color:#34535d}
+#ggm-shared-nav .ggm-link:focus-visible,#ggm-menu-toggle:focus-visible,#ggm-menu-close:focus-visible{outline:2px solid #667f89;outline-offset:3px}
+#ggm-menu-toggle,#ggm-menu-close{display:none}
+#ggm-nav-backdrop{display:none}
+@media(max-width:900px){
+  #ggm-shared-nav{position:fixed;top:0;left:0;bottom:0;height:100dvh;min-height:0;max-width:min(300px,85vw);width:280px;min-width:0;overflow-y:auto;transform:translateX(-105%);transition:transform .2s ease;box-shadow:0 10px 35px #172f3922;z-index:1002}
+  body.ggm-nav-open #ggm-shared-nav{transform:translateX(0)}
+  #ggm-menu-toggle{display:flex;position:fixed;left:13px;top:11px;z-index:999;align-items:center;justify-content:center;width:42px;height:42px;background:white;border:1px solid #dce5e7;border-radius:9px;color:#34535d;font-size:22px;line-height:1}
+  #ggm-menu-close{display:flex;margin:0 0 12px auto;align-items:center;justify-content:center;border:0;background:transparent;color:#34535d;width:38px;height:38px;font-size:27px}
+  #ggm-nav-backdrop{position:fixed;inset:0;background:#15292f77;z-index:1001}
+  body.ggm-nav-open #ggm-nav-backdrop{display:block}
+  body.ggm-nav-open{overflow:hidden}
+  .layout>.main{width:100%;min-width:0;flex:1}
+  .layout>.main>.top,.layout>.main>.topbar{padding-left:68px!important;min-height:64px;height:auto}
+  .layout>.main>.content,.layout>.main>main.content{width:100%;max-width:100%;padding-left:16px!important;padding-right:16px!important}
+}
+@media(max-width:480px){
+  .layout>.main>.content,.layout>.main>main.content{padding-left:12px!important;padding-right:12px!important}
+  .layout>.main .stats,.layout>.main .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .layout>.main .tablewrap{max-width:100%;overflow-x:auto}
+  .layout>.main .head,.layout>.main .heading{align-items:flex-start;flex-wrap:wrap}
+  .layout>.main .controls,.layout>.main .toolbar,.layout>.main .filters{flex-wrap:wrap}
+}
+@media(prefers-reduced-motion:reduce){#ggm-shared-nav{transition:none}}
