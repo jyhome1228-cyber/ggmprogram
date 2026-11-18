@@ -517,6 +517,7 @@ export default {
         const root=BASE+'/api/v2/admin/orders/'+encodeURIComponent(orderId);
         const endpoints=[
           ['order',root+'?embed=buyer,receivers,items'],
+          ['buyer',root+'/buyer'],
           ['items',root+'/items?limit=100'],
           ['receivers',root+'/receivers?limit=100'],
           ['shipments',root+'/shipments?limit=100']
@@ -537,7 +538,7 @@ export default {
           details:results.order?.error||'주문 상세 미제공'
         },502);
         const asArray=value=>Array.isArray(value)?value:value&&typeof value==='object'?[value]:[];
-        const buyer=asArray(order.buyer)[0]||{};
+        const buyer=asArray(results.buyer?.data?.buyer)[0]||asArray(order.buyer)[0]||{};
         const receiverRaw=results.receivers?.data?.receivers??order.receivers;
         const itemRaw=results.items?.data?.items??order.items;
         const shipmentRaw=results.shipments?.data?.shipments;
@@ -589,6 +590,7 @@ export default {
           currency:order.currency??'KRW',
           receivers,items,shipments,
           partial_errors:{
+            buyer:results.buyer?.error||null,
             items:results.items?.error||null,
             receivers:results.receivers?.error||null,
             shipments:results.shipments?.error||null
