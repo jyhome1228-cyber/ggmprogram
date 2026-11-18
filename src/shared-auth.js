@@ -51,7 +51,9 @@ async function handleShared(request,env,path){
  if(path!=='/auth/shared/login'&&path!=='/auth/shared/open')return reply({error:'경로를 찾을 수 없습니다.'},404);
  const ip=request.headers.get('CF-Connecting-IP')||'unknown';
  const ipKey='ggm:login:attempts:'+await digest(ip);
- const attempts=Number(await env.GGM_AUTH.get(ipKey)||0);
+ let attempts=0;
+ try{attempts=Number(await env.GGM_AUTH.get(ipKey)||0)}
+ catch{return reply({error:'로그인 시도 기록 저장소 조회 실패',code:'AUTH_KV_READ'},503)}
  if(attempts>=5)return reply({error:'로그인 시도가 많습니다. 15분 후 다시 시도해주세요.'},429);
  let body;
  try{
@@ -61,14 +63,21 @@ async function handleShared(request,env,path){
    else body=JSON.parse(raw);
  }catch{return reply({error:'입력 형식을 확인해주세요.'},400)}
  const actual=typeof body.password==='string'?body.password:'';
- if(!(await verifyQaPassword(actual))){
-  await env.GGM_AUTH.put(ipKey,String(attempts+1),{expirationTtl:900});
+ let validPassword=false;
+ try{validPassword=await verifyQaPassword(actual)}
+ catch{return reply({error:'비밀번호 확인 중 오류',code:'AUTH_CRYPTO_COMPARE'},503)}
+ if(!validPassword){
+  try{await env.GGM_AUTH.put(ipKey,String(attempts+1),{expirationTtl:900})}
+  catch{return reply({error:'로그인 시도 기록 저장 실패',code:'AUTH_KV_WRITE'},503)}
   return reply({error:'비밀번호가 일치하지 않습니다.'},401);
  }
- await env.GGM_AUTH.delete(ipKey);
- const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
- const expire=String(Math.floor(Date.now()/1000)+ttl);
- const signed=nonce+'.'+expire+'.'+await signature(nonce+'.'+expire,env.GGM_BOOTSTRAP_KEY);
- return reply({ok:true},200,{'Set-Cookie':newCookie(signed)});
+ try{await env.GGM_AUTH.delete(ipKey)}
+ catch{return reply({error:'로그인 시도 기록 정리 실패',code:'AUTH_KV_DELETE'},503)}
+ try{
+  const nonce=hex(crypto.getRandomValues(new Uint8Array(16)));
+  const expire=String(Math.floor(Date.now()/1000)+ttl);
+  const signed=nonce+'.'+expire+'.'+await signature(nonce+'.'+expire,env.GGM_BOOTSTRAP_KEY);
+  return reply({ok:true},200,{'Set-Cookie':newCookie(signed)});
+ }catch{return reply({error:'로그인 쿠키 생성 실패',code:'AUTH_COOKIE_SIGN'},503)}
 }
 export {handleShared,valid,secretsReady,reply};
