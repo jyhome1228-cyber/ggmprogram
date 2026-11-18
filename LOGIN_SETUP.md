@@ -3,30 +3,28 @@
 ## 현재 상태
 
 1. GitHub에는 로그인 화면(`public/login.html`), 직원 계정 관리(`public/accounts.html`), 서버 인증(`src/auth.js`), D1 스키마(`migrations/0001_auth.sql`)가 구현되어 있습니다.
-2. **아직 운영 전환되지 않았습니다.** 기존 Cloudflare Access 전체 트래픽 보호를 유지하세요.
+2. **D1 데이터베이스 `ggm-login` 생성 및 GitHub `AUTH_DB` 바인딩 설정 완료** (2026-11-18). SQL 테이블 초기화와 최초 관리자 등록 전이므로 **아직 운영 전환되지 않았습니다.** 기존 Cloudflare Access 전체 트래픽 보호를 유지하세요.
 3. 카페24 OAuth Secret/KV와 주문·배송 API는 기존 구조를 계속 사용합니다.
 4. D1이 준비되고 최종 전환 플래그 `GGM_LOGIN_ENFORCE=true`가 켜지기 전까지 기존 접속 방식이 그대로 유지됩니다.
 
-## 1. D1 데이터베이스 만들기 (Cloudflare 대시보드)
+## 1. D1 데이터베이스 테이블 만들기 (Cloudflare 대시보드)
 
-- Cloudflare → Storage & Databases → D1 SQL Database → Create database
-- 데이터베이스 이름: `ggm-login`
-- 생성 후 **Database ID(UUID)** 를 확인하세요. 이 값은 비밀번호가 아닙니다.
+- **생성 완료:** Cloudflare → Storage & Databases → D1 SQL Database → `ggm-login`.
+- **GitHub 설정 완료:** Worker `AUTH_DB` 바인딩과 해당 D1 Database ID가 `wrangler.jsonc`에 등록됨.
 - D1 콘솔의 SQL 실행 창에서 `migrations/0001_auth.sql` 내용을 실행하여 `users`, `sessions` 테이블을 생성합니다.
 - 기존 `ggm-ops-auth` KV 네임스페이스를 삭제하거나 이름을 변경하지 마세요.
 
 ## 2. Worker와 D1 연결 (중요)
 
-- 기존 Worker `ggm-ops`에 D1 binding 이름 **`AUTH_DB`**, database **`ggm-login`**을 연결합니다.
-- GitHub 자동 배포는 `wrangler.jsonc`가 배포 구성을 관리하기 때문에, 새 D1 ID를 확보한 뒤 아래 항목도 Wrangler 구성에 반영해야 합니다.
-- **D1 ID를 확인하기 전에 가짜 ID를 `wrangler.jsonc`에 넣어두면 자동 배포가 실패할 수 있으므로 넣지 않았습니다.**
+- **연결 구성 반영 완료:** 기존 Worker `ggm-ops`에 D1 binding 이름 **`AUTH_DB`**, database **`ggm-login`**을 GitHub 설정에 등록했습니다. Cloudflare 배포 성공 후 실제 연결을 확인하세요.
+- GitHub 자동 배포는 `wrangler.jsonc`에서 D1 바인딩을 관리합니다. 임의로 별도의 중복 binding을 만들지 마세요.
 
 ```json
 "d1_databases": [
   {
     "binding": "AUTH_DB",
     "database_name": "ggm-login",
-    "database_id": "<CLOUDFLARE_D1_DATABASE_ID>"
+    "database_id": "a53bc729-c02f-4c2c-a098-07928f7d1b03"
   }
 ]
 ```
