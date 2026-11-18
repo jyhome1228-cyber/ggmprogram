@@ -19,7 +19,7 @@ input:focus{border-color:#667f89;box-shadow:0 0 0 3px #667f8926}button{font:inhe
 small{display:block;text-align:center;font-size:11px;color:#8b9da4;margin-top:12px}
 </style></head><body>
 <main class="card"><div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
-<div class="caption">GGM OPS · COMMERCE OPERATIONS</div><h1>관리자 로그인</h1><p>건강미 운영관리 시스템</p>
+<div class="caption">GGM OPS · COMMERCE OPERATIONS</div><h1>건강미 로그인</h1><p>건강미 운영관리 시스템</p>
 <form id="sharedForm" hidden>
 <label for="sharedPassword">공통 비밀번호</label><input type="password" id="sharedPassword" autocomplete="current-password" required>
 <button class="primary" type="submit" id="sharedSubmit">관리자 프로그램 열기</button>
@@ -49,28 +49,36 @@ const after=()=>{
  location.replace(target.startsWith('/')&&!target.startsWith('//')?target:'/');
 };
 async function statusCheck(){
+ $('loginForm').hidden=true;$('setupForm').hidden=true;$('sharedForm').hidden=true;
+ $('submit').disabled=true;
  try {
-   const modeResponse=await fetch('/auth/mode',{credentials:'same-origin',cache:'no-store'});
-   if(modeResponse.ok) {
-     const info=await modeResponse.json();
-     if(info.mode==='shared'){
-       $('loginForm').hidden=true;$('setupForm').hidden=true;$('sharedForm').hidden=false;
-       document.querySelector('h1').textContent='건강미 테스트 로그인';
-       document.querySelector('.caption').textContent='GGM OPS · TEST ACCESS';
-       const me=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-       if(me.ok){after();return}
-       setStatus('테스트용 공통 비밀번호를 입력해주세요.');
-       return;
-     }
+   const modeResponse=await fetch('/auth/mode?revision=shared-login-v3',{credentials:'same-origin',cache:'no-store'});
+   if(!modeResponse.ok)throw Error('로그인 서버가 최신 버전으로 배포되지 않았습니다. Cloudflare에서 GitHub 빌드 및 활성 배포를 확인해주세요.');
+   const info=await modeResponse.json();
+   if(info.mode==='shared'){
+     $('sharedForm').hidden=false;
+     document.querySelector('h1').textContent='건강미 테스트 로그인';
+     document.querySelector('.caption').textContent='GGM OPS · TEST ACCESS';
+     const me=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
+     if(me.ok){after();return}
+     setStatus(info.ready===false?'테스트 로그인 비밀값 설정을 확인해주세요.':'공통 비밀번호를 입력해주세요.');
+     $('sharedSubmit').disabled=info.ready===false;
+     return;
+   }
+   if(info.mode!=='individual'){
+     setStatus('현재 직원 전용 로그인이 비활성화되어 있습니다. Cloudflare Access를 유지해주세요.',true);
+     return;
    }
    const m=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
    if(m.ok){after();return}
-   const s=await fetch('/auth/setup-status',{cache:'no-store',credentials:'same-origin'});
-   const data=await s.json();
-   if(!s.ok)throw Error(data.error||'로그인 설정 확인 실패');
-   if(data.setup_required){$('setupForm').hidden=false;$('loginForm').hidden=true;setStatus('최초 관리자 등록이 필요합니다.');}
-   else setStatus('');
- }catch(e){setStatus(e.message,true);$('submit').disabled=true}
+   const res=await fetch('/auth/setup-status',{cache:'no-store',credentials:'same-origin'});
+   const data=await res.json();
+   if(!res.ok)throw Error(data.error||'직원 로그인 설정을 확인할 수 없습니다.');
+   if(data.setup_required){$('setupForm').hidden=false;setStatus('최초 관리자 등록이 필요합니다.');}
+   else {$('loginForm').hidden=false;$('submit').disabled=false;setStatus('');}
+ }catch(e){
+   setStatus(e.message,true);
+ }
 }
 async function submit(path,data,button){
  button.disabled=true;setStatus('확인 중…');
