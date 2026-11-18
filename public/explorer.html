@@ -37,7 +37,7 @@
 @media(max-width:650px){.side{width:56px}.mark{width:31px;height:47px}.side a{font-size:9px}.summary{grid-template-columns:1fr 1fr;gap:8px}.stat{padding:15px}.stat .value{font-size:23px}.tab-panel{padding:15px}.product-list{grid-template-columns:1fr}.controls{padding:15px}.head{align-items:flex-start}}
 </style></head><body>
 <div class="layout"><aside class="side"><div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · OPERATIONS</small></div>
-<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html" class="active">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/shipping.html">배송 점검</a></aside>
+<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html" class="active">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/backup.html">배송 데이터 백업</a><a href="/shipping.html">배송 점검</a></aside>
 <div class="main"><div class="top">건강미 운영센터 / 주문자·제품 조회 · CAFE24 ggmspa</div>
 <main class="content"><div class="head"><div><div class="eyebrow">ORDER INSIGHTS</div><h1>주문자·제품별 주문 조회</h1><p>접속하면 최근 30일 주문을 자동 조회합니다. 카페24 실제 주문과 상품구성을 바탕으로 검색합니다.</p></div><div class="seg"><button id="buyerTab" class="active" type="button">주문자 조회</button><button id="productTab" type="button">제품별 주문</button></div></div>
 <div class="summary"><div class="stat"><div class="label">조회된 주문</div><div class="value" id="orderCount">—</div></div>
@@ -218,4 +218,4 @@ $('download').addEventListener('click',exportCSV);
 const initial=rangeFor(30);$('startDate').value=initial.start;$('endDate').value=initial.end;$('startDate').max=initial.end;$('endDate').max=initial.end;
 render();setMode('buyer');scan();
 })();
-</script></body></html>
+</script><script src="/assets/session.js" defer></script></body></html>
