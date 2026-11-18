@@ -21,5 +21,30 @@
       // Network failures are handled by each page's own error UI; never force OAuth.
     }
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',check,{once:true});else check();
+  async function staffSession(){
+    try {
+      const res=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
+      if(!res.ok)return;
+      const data=await res.json();
+      if(!data.authenticated||!data.user||document.getElementById('ggm-staff-control'))return;
+      const controls=document.createElement('div');controls.id='ggm-staff-control';
+      controls.style.cssText='position:fixed;bottom:14px;left:245px;z-index:90;display:flex;align-items:center;gap:12px;background:#fff;padding:9px 13px;border:1px solid #dae6e8;border-radius:10px;box-shadow:0 8px 22px #28465026;font:12px Pretendard,-apple-system,sans-serif;color:#597983';
+      const name=document.createElement('span');name.textContent=data.user.username+' · '+(data.user.role==='admin'?'관리자':'직원');controls.append(name);
+      if(data.user.role==='admin'){
+        const a=document.createElement('a');a.href='/accounts.html';a.textContent='계정 관리';a.style.cssText='color:#4e6e79;font-weight:700';controls.append(a);
+      }
+      const logout=document.createElement('button');logout.textContent='로그아웃';
+      logout.style.cssText='border:0;background:#edf3f4;padding:6px 10px;color:#3d626c;border-radius:6px;cursor:pointer';
+      logout.addEventListener('click',async()=>{
+        logout.disabled=true;
+        try{await fetch('/auth/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})}finally{location.assign('/login.html')}
+      });
+      controls.append(logout);document.body.append(controls);
+      if(window.matchMedia?.('(max-width: 900px)').matches)controls.style.left='70px';
+    }catch{}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',()=>{check();staffSession()},{once:true});
+  }else{check();staffSession()}
+
 })();
