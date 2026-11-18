@@ -40,9 +40,8 @@ test('public login is stable: no redirects, mode visible, unauthenticated API de
  assert.equal(login.headers.get('Location'),null);
  assert.equal(await login.text(),'LOGIN PAGE');
  const app=await visit('/app',env);
- assert.equal(app.status,200);
- assert.equal(app.headers.get('Location'),null);
  assert.equal(app.status,401);
+ assert.equal(app.headers.get('Location'),null);
  assert.equal((await app.json()).code,'LOGIN_REQUIRED');
  assert.equal(files.includes('/index.html'),false);
  const forbidden=await visit('/api/orders',env);
