@@ -450,6 +450,10 @@ export default {
             const target = path==='/' ? '/' : path;
             return redirect('/login.html?next='+encodeURIComponent(target));
           }
+          // Credential changes and full shipping-data exports are administrator-only.
+          if (user.role!=='admin' && (path.startsWith('/oauth/') || path==='/api/backup/shipping')) {
+            return authJson({error:'관리자 권한이 필요합니다.'},403);
+          }
         }
       }
       if (!validEnv(env)) return respond({ error: 'Secret 또는 KV 바인딩이 없습니다.' }, 503);
