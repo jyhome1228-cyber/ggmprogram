@@ -23,6 +23,24 @@
   }
   async function staffSession(){
     try {
+      const modeResponse=await fetch('/auth/mode',{credentials:'same-origin',cache:'no-store'});
+      if(modeResponse.ok){
+        const modeData=await modeResponse.json();
+        if(modeData.mode==='shared'){
+          const status=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
+          if(status.ok && !document.getElementById('ggm-staff-control')){
+            const controls=document.createElement('div');controls.id='ggm-staff-control';
+            controls.style.cssText='position:fixed;bottom:14px;right:20px;z-index:90;display:flex;align-items:center;gap:12px;background:#fff;padding:9px 13px;border:1px solid #dae6e8;border-radius:10px;box-shadow:0 8px 22px #28465026;font:12px Pretendard,-apple-system,sans-serif;color:#597983';
+            const title=document.createElement('span');title.textContent='테스트 관리자 접속 중';
+            const logout=document.createElement('button');logout.type='button';logout.textContent='로그아웃';logout.style.cssText='border:0;background:#edf3f4;padding:6px 10px;color:#3d626c;border-radius:6px;cursor:pointer';
+            logout.addEventListener('click',async()=>{
+              logout.disabled=true;try{await fetch('/auth/shared/logout',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:'{}'})}finally{location.assign('/login.html')}
+            });
+            controls.append(title,logout);document.body.append(controls);
+          }
+          return;
+        }
+      }
       const res=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
       if(!res.ok)return;
       const data=await res.json();
