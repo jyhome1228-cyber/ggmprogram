@@ -19,5 +19,9 @@
       "database_name": "ggm-login",
       "database_id": "a53bc729-c02f-4c2c-a098-07928f7d1b03"
     }
-  ]
+  ],
+  "keep_vars": true,
+  "vars": {
+    "GGM_AUTH_MODE": "shared"
+  }
 }
