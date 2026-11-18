@@ -1,0 +1,10 @@
+body.ggm-intro-pending{overflow:hidden}
+#ggm-login-intro{position:fixed;inset:0;z-index:2147483000;background:#667f89;display:grid;place-items:center;opacity:1;transition:opacity .42s ease,visibility .42s ease;font-family:Pretendard,-apple-system,sans-serif}
+#ggm-login-intro.ggm-intro-leave{opacity:0;visibility:hidden;pointer-events:none}
+#ggm-login-intro .ggm-intro-content{display:flex;align-items:center;flex-direction:column;gap:18px;padding:24px;text-align:center}
+#ggm-login-intro .ggm-intro-symbol{width:76px;height:132px;object-fit:contain;filter:brightness(0) invert(1);opacity:0;transform:translateY(14px) scale(.91);animation:ggmSymbol .92s cubic-bezier(.2,.68,.2,1) .08s forwards}
+#ggm-login-intro .ggm-intro-name{color:#fff;font-size:18px;font-weight:700;letter-spacing:.34em;margin-left:.34em;opacity:0;animation:ggmText .6s ease .62s forwards}
+#ggm-login-intro .ggm-intro-sub{color:#eaf2f4;letter-spacing:.18em;font-size:10px;font-weight:600;opacity:0;animation:ggmText .6s ease .78s forwards}
+#ggm-login-intro .ggm-intro-skip{position:absolute;bottom:24px;right:25px;background:transparent;border:1px solid #ffffff80;border-radius:7px;padding:7px 13px;color:#fff;font-size:12px;cursor:pointer}
+@keyframes ggmSymbol{to{opacity:1;transform:translateY(0) scale(1)}}@keyframes ggmText{to{opacity:1}}
+@media(prefers-reduced-motion:reduce){#ggm-login-intro,#ggm-login-intro *{animation:none!important;transition:none!important}#ggm-login-intro .ggm-intro-symbol,#ggm-login-intro .ggm-intro-name,#ggm-login-intro .ggm-intro-sub{opacity:1;transform:none}}
