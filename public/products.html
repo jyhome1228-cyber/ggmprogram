@@ -44,7 +44,7 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 </style></head><body>
 <div class="layout"><aside class="sidebar">
 <div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
-<a href="/">주문 대시보드</a><a href="/products.html" class="active">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/shipping.html">배송 점검</a>
+<a href="/">주문 대시보드</a><a href="/products.html" class="active">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/backup.html">배송 데이터 백업</a><a href="/shipping.html">배송 점검</a>
 </aside><div class="main"><div class="top">건강미 운영센터 / 상품 목록 · CAFE24 ggmspa</div>
 <main class="content"><div class="head"><div><div class="eyebrow">PRODUCT MANAGEMENT</div><h1>상품 목록 및 상품별 주문</h1><p>카페24에 등록된 상품을 선택하고, 선택 기간의 관련 주문을 확인합니다.</p></div><button id="reload" class="btn primary">상품목록 새로고침</button></div>
 <section class="panel"><div class="toolbar"><input id="search" class="search" type="search" placeholder="상품명·상품번호 검색" aria-label="상품명 또는 상품번호"><span id="catalogStatus" class="meta">상품목록을 불러오는 중입니다.</span><span class="spacer"></span><button id="catalogMore" class="btn" disabled>다음 상품 불러오기</button></div>
@@ -247,4 +247,4 @@ $('reload').addEventListener('click',()=>loadCatalog(true));
 $('catalogMore').addEventListener('click',()=>loadCatalog());
 loadCatalog(true);
 })();
-</script></body></html>
+</script><script src="/assets/session.js" defer></script></body></html>
