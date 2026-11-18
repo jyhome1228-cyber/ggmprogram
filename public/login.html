@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>건강미 GGM OPS | 직원 로그인</title><link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
+<style>
+:root{--brand:#667f89;--text:#283e47;--line:#dfe8e9;--bg:#f6f9f9}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);font:14px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);display:grid;place-items:center;padding:24px}
+.card{width:min(440px,100%);background:white;border:1px solid var(--line);border-radius:19px;padding:39px 37px;box-shadow:0 14px 46px #566c7420}
+.logo{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px}.logo img:first-child{width:61px;height:90px;object-fit:contain}.logo img:nth-child(2){width:170px;max-height:50px;object-fit:contain}
+.caption{text-align:center;color:#8498a0;font-size:10px;letter-spacing:2px;font-weight:800}
+h1{font-size:25px;letter-spacing:-.7px;margin:25px 0 6px;text-align:center}p{margin:0 0 25px;color:#85949b;text-align:center;font-size:13px}
+label{display:block;font-size:12px;font-weight:750;color:#587078;margin:17px 0 7px}
+input{width:100%;border:1px solid #dce5e8;border-radius:9px;min-height:45px;padding:11px 13px;outline:none;background:#fcfefe;color:#2b434c;font:inherit}
+input:focus{border-color:#667f89;box-shadow:0 0 0 3px #667f8926}button{font:inherit;cursor:pointer}
+.primary{width:100%;border:0;border-radius:9px;background:#667f89;color:white;padding:13px;font-weight:750;margin-top:23px;min-height:46px}
+.primary:disabled{opacity:.5;cursor:default}.status{font-size:12px;line-height:1.7;min-height:24px;margin-top:13px;color:#687f88;text-align:center}
+.status.error{color:#b44f4f}.extra{padding-top:18px;margin-top:19px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#8ca0a8}
+.extra a{color:#597a86}.setup[hidden],#loginForm[hidden]{display:none}
+small{display:block;text-align:center;font-size:11px;color:#8b9da4;margin-top:12px}
+</style></head><body>
+<main class="card"><div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
+<div class="caption">GGM OPS · COMMERCE OPERATIONS</div><h1>관리자 로그인</h1><p>건강미 운영관리 시스템</p>
+<form id="loginForm">
+<label for="username">아이디</label><input id="username" name="username" autocomplete="username" required minlength="4" maxlength="32">
+<label for="password">비밀번호</label><input id="password" type="password" name="password" autocomplete="current-password" required minlength="12" maxlength="128">
+<button id="submit" class="primary" type="submit">로그인</button></form>
+<form id="setupForm" class="setup" hidden>
+<div class="status">초기 관리자 계정 등록 · 나인웍스 담당자 전용</div>
+<label for="key">초기 등록 비밀키</label><input id="key" type="password" autocomplete="off" required>
+<label for="newuser">최초 관리자 아이디</label><input id="newuser" autocomplete="off" required minlength="4" maxlength="32">
+<label for="newpass">최초 관리자 비밀번호 (12자 이상)</label><input id="newpass" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
+<button class="primary" id="setupSubmit" type="submit">최초 관리자 등록</button>
+<small>비밀키는 Cloudflare Secrets에만 설정합니다. GitHub나 채팅에 공유하지 마세요.</small>
+</form>
+<div class="status" role="status" aria-live="polite" id="status">로그인 시스템 확인 중…</div>
+<div class="extra">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>사용 계정 문의는 시스템 운영 담당자에게 연락해주세요.</div></div></main>
+<script>
+(() => {
+'use strict';
+const $=id=>document.getElementById(id),status=$('status');
+const setStatus=(s,error=false)=>{status.textContent=s;status.classList.toggle('error',error)};
+const after=()=>{
+ const params=new URLSearchParams(location.search);
+ const target=params.get('next')||'/';
+ location.replace(target.startsWith('/')&&!target.startsWith('//')?target:'/');
+};
+async function statusCheck(){
+ try {
+   const m=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
+   if(m.ok){after();return}
+   const s=await fetch('/auth/setup-status',{cache:'no-store',credentials:'same-origin'});
+   const data=await s.json();
+   if(!s.ok)throw Error(data.error||'로그인 설정 확인 실패');
+   if(data.setup_required){$('setupForm').hidden=false;$('loginForm').hidden=true;setStatus('최초 관리자 등록이 필요합니다.');}
+   else setStatus('');
+ }catch(e){setStatus(e.message,true);$('submit').disabled=true}
+}
+async function submit(path,data,button){
+ button.disabled=true;setStatus('확인 중…');
+ try {
+   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(data)});
+   const result=await r.json();
+   if(!r.ok)throw Error(result.error||'인증 실패');
+   if(path==='/auth/login')after();
+   else {$('setupForm').hidden=true;$('loginForm').hidden=false;setStatus('관리자 등록 완료. 새 아이디로 로그인해주세요.');}
+ }catch(e){setStatus(e.message,true)}
+ finally{button.disabled=false}
+}
+$('loginForm').addEventListener('submit',e=>{e.preventDefault();submit('/auth/login',{username:$('username').value.trim(),password:$('password').value},$('submit'))});
+$('setupForm').addEventListener('submit',e=>{e.preventDefault();submit('/auth/bootstrap',{setup_key:$('key').value,username:$('newuser').value.trim(),password:$('newpass').value},$('setupSubmit'))});
+statusCheck();
+})();
+</script></body></html>
