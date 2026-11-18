@@ -41,11 +41,9 @@ tr.selected{background:#eef5f5}.product-btn{border:0;background:none;text-align:
 .alert{font-size:12px;color:#9e672d;line-height:1.8}
 @media(max-width:1100px){.split{grid-template-columns:1fr}.catalog{border-right:0;border-bottom:1px solid var(--line)}.tablewrap{max-height:440px}.sidebar{width:78px;min-width:78px;padding:20px 7px}.wordmark,.brand small{display:none}.mark{width:38px;height:55px}.sidebar a{font-size:11px;padding:12px 7px}.content{padding:26px 20px}.top{padding:22px 20px}}
 @media(max-width:580px){.sidebar{width:55px;min-width:55px}.mark{width:30px;height:45px}.sidebar a{font-size:9px}.head{align-items:flex-start}.content{padding:20px 12px}.toolbar{padding:15px}.stats{gap:7px}.detail-content{padding:15px}.order-entry{grid-template-columns:1fr}.search{width:100%}}
-</style></head><body>
-<div class="layout"><aside class="sidebar">
-<div class="brand"><div class="lockup"><img class="mark" src="/assets/geonganmi-mark.svg" alt=""><img class="wordmark" src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
-<a href="/">주문 대시보드</a><a href="/products.html" class="active">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html">판매액·매출 분석</a><a href="/backup.html">배송 데이터 백업</a><a href="/shipping.html">배송 점검</a>
-</aside><div class="main"><div class="top">건강미 운영센터 / 상품 목록 · CAFE24 ggmspa</div>
+</style><link rel="stylesheet" href="/assets/shared-nav.css?v=1">
+</head><body>
+<div class="layout"><aside id="ggm-shared-nav"></aside><div class="main"><div class="top">건강미 운영센터 / 상품 목록 · CAFE24 ggmspa</div>
 <main class="content"><div class="head"><div><div class="eyebrow">PRODUCT MANAGEMENT</div><h1>상품 목록 및 상품별 주문</h1><p>카페24에 등록된 상품을 선택하고, 선택 기간의 관련 주문을 확인합니다.</p></div><button id="reload" class="btn primary">상품목록 새로고침</button></div>
 <section class="panel"><div class="toolbar"><input id="search" class="search" type="search" placeholder="상품명·상품번호 검색" aria-label="상품명 또는 상품번호"><span id="catalogStatus" class="meta">상품목록을 불러오는 중입니다.</span><span class="spacer"></span><button id="catalogMore" class="btn" disabled>다음 상품 불러오기</button></div>
 <div class="split"><div class="catalog"><div class="subhead"><h2>카페24 등록 상품</h2><span id="catalogCount" class="meta">—</span></div><div class="tablewrap"><table><thead><tr><th>상품번호</th><th>상품명</th><th>판매가</th></tr></thead><tbody id="products"><tr><td colspan="3" class="empty">불러오는 중...</td></tr></tbody></table></div></div>
@@ -247,4 +245,5 @@ $('reload').addEventListener('click',()=>loadCatalog(true));
 $('catalogMore').addEventListener('click',()=>loadCatalog());
 loadCatalog(true);
 })();
-</script><script src="/assets/session.js" defer></script></body></html>
+</script><script src="/assets/session.js" defer></script><script src="/assets/shared-nav.js?v=1" defer></script>
+</body></html>
