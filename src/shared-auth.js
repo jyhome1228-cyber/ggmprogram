@@ -15,13 +15,15 @@ async function signature(payload,key){
 function equal(a,b){if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
 // Temporary QA passphrase hash. NEVER use this exposed, low-entropy test password
 // as the sole security boundary for real customer/order information.
-const QA_SALT='ggm-qa-2026-v1-fixed-salt';
-const QA_HASH='0db69869faa0584862d29746173796f7b6ce1ca6d5f7217c2366a03f89fef8cc';
+// This deliberately temporary QA code is never a production authentication mechanism.
+// Keep Cloudflare Access ON. Migrate to strong random credentials before sharing.
+const QA_SALT='ggm-qa-2026-v2';
+const QA_HASH='51bfc8946613ad6e34f4dcc86196f8c934843babdde2569c22f4a08569a50954';
 async function verifyQaPassword(password){
  if(typeof password!=='string'||password.length>128)return false;
- const key=await crypto.subtle.importKey('raw',encode.encode(password),'PBKDF2',false,['deriveBits']);
- const hash=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:encode.encode(QA_SALT),iterations:310000},key,256);
- return equal(hex(hash),QA_HASH);
+ // SHA-256 avoids PBKDF2 execution timeouts on small CPU budgets during QA.
+ const candidate=await digest(QA_SALT+'|'+password);
+ return equal(candidate,QA_HASH);
 }
 function secretsReady(env){return typeof env.GGM_BOOTSTRAP_KEY==='string'&&env.GGM_BOOTSTRAP_KEY.length>=32}
 function cookie(request){
