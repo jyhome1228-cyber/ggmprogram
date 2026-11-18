@@ -436,6 +436,27 @@ export default {
     try {
       // This is a staged login system. Cloudflare Access remains active during QA.
       if (path === '/auth/mode') return sharedReply({mode:shared?'shared':'access',ready:!shared||sharedReady(env)});
+      if (shared && path === '/auth/shared/open') {
+        // Single native form submit: return dashboard HTML with the session cookie.
+        // No client-side redirect or second navigation necessary.
+        const auth = await handleShared(request,env,path);
+        if(auth.status!==200)return auth;
+        const asset = await env.ASSETS.fetch(new Request(new URL('/index.html',request.url)));
+        if(asset.status!==200)return sharedReply({error:'주문 대시보드 파일을 불러오지 못했습니다.'},503);
+        const html=await asset.text();
+        if(!html.includes('id="refresh"')||!html.includes('id="reconnect"')){
+          return sharedReply({error:'주문 대시보드 파일 검증 실패'},503);
+        }
+        const cookie=auth.headers.get('Set-Cookie');
+        if(!cookie)return sharedReply({error:'로그인 쿠키 발급 실패'},503);
+        return new Response(html,{status:200,headers:{
+          'Content-Type':'text/html; charset=utf-8',
+          'Cache-Control':'no-store',
+          'X-Frame-Options':'DENY',
+          'X-GGM-Page':'dashboard',
+          'Set-Cookie':cookie
+        }});
+      }
       if (shared && path.startsWith('/auth/shared/')) return handleShared(request,env,path);
       if (shared) {
         if (!sharedReady(env)) return sharedReply({error:'공통 로그인 비밀값 설정을 확인해주세요.'},503);
