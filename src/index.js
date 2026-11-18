@@ -439,7 +439,9 @@ export default {
       if (shared && path === '/auth/shared/open') {
         // Single native form submit: return dashboard HTML with the session cookie.
         // No client-side redirect or second navigation necessary.
-        const auth = await handleShared(request,env,path);
+        let auth;
+        try{auth = await handleShared(request,env,path)}
+        catch{return sharedReply({error:'로그인 처리 중 예외가 발생했습니다.',code:'AUTH_HANDLER_EXCEPTION'},503)}
         if(auth.status!==200) {
           const failedLogin=await env.ASSETS.fetch(new Request(new URL('/login.html',request.url)));
           if(failedLogin.status!==200)return sharedReply({error:'로그인 화면을 불러오지 못했습니다.'},503);
@@ -448,9 +450,12 @@ export default {
           page=page.replace('</form>','</form><p class="status error">'+msg+'</p>');
           return new Response(page,{status:auth.status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY'}});
         }
-        const asset = await env.ASSETS.fetch(new Request(new URL('/index.html',request.url)));
-        if(asset.status!==200)return sharedReply({error:'주문 대시보드 파일을 불러오지 못했습니다.'},503);
-        const html=await asset.text();
+        let asset,html;
+        try{
+          asset=await env.ASSETS.fetch(new Request(new URL('/index.html',request.url)));
+          if(asset.status!==200)return sharedReply({error:'주문 대시보드 파일을 불러오지 못했습니다.',code:'DASHBOARD_ASSET_STATUS',asset_status:asset.status},503);
+          html=await asset.text();
+        }catch{return sharedReply({error:'대시보드 HTML 읽기 실패',code:'DASHBOARD_ASSET_EXCEPTION'},503)}
         if(!html.includes('id="refresh"')||!html.includes('id="reconnect"')){
           return sharedReply({error:'주문 대시보드 파일 검증 실패'},503);
         }
