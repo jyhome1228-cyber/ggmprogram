@@ -440,7 +440,14 @@ export default {
         // Single native form submit: return dashboard HTML with the session cookie.
         // No client-side redirect or second navigation necessary.
         const auth = await handleShared(request,env,path);
-        if(auth.status!==200)return auth;
+        if(auth.status!==200) {
+          const failedLogin=await env.ASSETS.fetch(new Request(new URL('/login.html',request.url)));
+          if(failedLogin.status!==200)return sharedReply({error:'로그인 화면을 불러오지 못했습니다.'},503);
+          let page=await failedLogin.text();
+          const msg=auth.status===429?'로그인 시도가 많습니다. 잠시 후 다시 시도해주세요.':'비밀번호를 확인해주세요.';
+          page=page.replace('</form>','</form><p class="status error">'+msg+'</p>');
+          return new Response(page,{status:auth.status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY'}});
+        }
         const asset = await env.ASSETS.fetch(new Request(new URL('/index.html',request.url)));
         if(asset.status!==200)return sharedReply({error:'주문 대시보드 파일을 불러오지 못했습니다.'},503);
         const html=await asset.text();
@@ -449,7 +456,9 @@ export default {
         }
         const cookie=auth.headers.get('Set-Cookie');
         if(!cookie)return sharedReply({error:'로그인 쿠키 발급 실패'},503);
-        return new Response(html,{status:200,headers:{
+        // Change the displayed URL without another network navigation.
+        const documentHtml=html.replace('</body>', '<script>history.replaceState(null,"","/");</script></body>');
+        return new Response(documentHtml,{status:200,headers:{
           'Content-Type':'text/html; charset=utf-8',
           'Cache-Control':'no-store',
           'X-Frame-Options':'DENY',
