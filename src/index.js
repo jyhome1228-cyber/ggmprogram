@@ -436,6 +436,8 @@ export default {
     try {
       if (!validEnv(env)) return respond({ error: 'Secret 또는 KV 바인딩이 없습니다.' }, 503);
       if (request.method !== 'GET') return respond({ error: '지원하지 않는 요청입니다.' }, 405);
+      // The obsolete trial login URL now returns to the existing dashboard.
+      if (path === '/login.html' || path === '/accounts.html') return redirect('/');
       if (path.startsWith('/auth/')) return respond({ error: '테스트 로그인 기능은 비활성화되었습니다.' }, 404);
       if (url.pathname === '/api/status') {
         const saved = await env.GGM_AUTH.get(TOKEN_KEY, 'json');
