@@ -504,6 +504,97 @@ export default {
       if (url.pathname === '/api/products') return await catalogProducts(url, env);
       if (url.pathname === '/api/backup/shipping') return await shipmentBackupBatch(url, env);
       if (url.pathname === '/api/shipping-review') return await shippingReviewOrders(url, env);
+      // Single-order detail, requested only when a staff member opens a popup.
+      // No personal information is cached or written to KV/D1.
+      if (/^\/api\/orders\/\d{8}-\d{7,9}\/detail$/.test(path)) {
+        const orderId = path.split('/')[3];
+        const token = await currentToken(env);
+        const headers = {
+          Authorization:'Bearer '+token,
+          'X-Cafe24-Api-Version':API_VERSION,
+          'Content-Type':'application/json'
+        };
+        const root=BASE+'/api/v2/admin/orders/'+encodeURIComponent(orderId);
+        const endpoints=[
+          ['order',root+'?embed=buyer,receivers,items'],
+          ['items',root+'/items?limit=100'],
+          ['receivers',root+'/receivers?limit=100'],
+          ['shipments',root+'/shipments?limit=100']
+        ];
+        const fetched=await Promise.all(endpoints.map(async ([key,uri])=>{
+          try{
+            const response=await fetch(uri,{headers});
+            if(!response.ok)return [key,{error:'HTTP '+response.status}];
+            const json=await response.json();
+            return [key,{data:json}];
+          }catch{return [key,{error:'통신 오류'}]}
+        }));
+        const results=Object.fromEntries(fetched);
+        const rootRecord=results.order?.data?.order;
+        const order=Array.isArray(rootRecord)?rootRecord[0]:rootRecord;
+        if(!order||!order.order_id)return respond({
+          error:'카페24 주문 상세를 확인할 수 없습니다.',
+          details:results.order?.error||'주문 상세 미제공'
+        },502);
+        const asArray=value=>Array.isArray(value)?value:value&&typeof value==='object'?[value]:[];
+        const buyer=asArray(order.buyer)[0]||{};
+        const receiverRaw=results.receivers?.data?.receivers??order.receivers;
+        const itemRaw=results.items?.data?.items??order.items;
+        const shipmentRaw=results.shipments?.data?.shipments;
+        const receivers=asArray(receiverRaw).map(p=>({
+          shipping_code:p.shipping_code??null,
+          name:p.name??null,
+          cellphone:p.cellphone??null,
+          phone:p.phone??null,
+          zipcode:p.zipcode??null,
+          address1:p.address1??null,
+          address2:p.address2??null,
+          address_full:p.address_full??null,
+          country_name:p.country_name??null,
+          shipping_message:p.shipping_message??null,
+          wished_delivery_date:p.wished_delivery_date??null
+        }));
+        const items=asArray(itemRaw).map(p=>({
+          product_name:p.product_name??p.supplier_product_name??null,
+          product_no:p.product_no??null,
+          option_name:p.option_name??null,
+          options:p.options??null,
+          quantity:p.quantity??null,
+          order_status:p.order_status??null,
+          order_item_code:p.order_item_code??null,
+          product_price:p.product_price??null
+        }));
+        const shipments=asArray(shipmentRaw).map(p=>({
+          shipping_code:p.shipping_code??null,
+          tracking_no:p.tracking_no??null,
+          shipping_company_name:p.shipping_company_name??null,
+          shipping_company_code:p.shipping_company_code??null,
+          status:p.status??null,
+          shipping_date:p.shipping_date??null
+        }));
+        return respond({
+          order_id:order.order_id,
+          order_date:order.order_date??null,
+          buyer_name:buyer.name??null,
+          buyer_email:buyer.email??null,
+          buyer_cellphone:buyer.cellphone??null,
+          buyer_phone:buyer.phone??null,
+          payment_status:order.paid??order.payment_status??null,
+          payment_date:order.payment_date??null,
+          payment_method:order.payment_method??null,
+          order_status:order.order_status??null,
+          shipping_status:order.shipping_status??null,
+          canceled:order.canceled??null,
+          amount:amount(order.actual_order_amount),
+          currency:order.currency??'KRW',
+          receivers,items,shipments,
+          partial_errors:{
+            items:results.items?.error||null,
+            receivers:results.receivers?.error||null,
+            shipments:results.shipments?.error||null
+          }
+        });
+      }
       if (url.pathname.startsWith('/api/orders/') && url.pathname.endsWith('/items')) {
         const orderId = url.pathname.split('/')[3];
         if (!/^\d{8}-\d{7,9}$/.test(orderId || '')) return respond({ error: '올바른 주문번호가 아닙니다.' }, 400);
