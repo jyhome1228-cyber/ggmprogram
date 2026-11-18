@@ -31,6 +31,9 @@ td{border-bottom:1px solid #edf1f2;padding:14px 17px;font-size:12px}
 .note{margin-top:17px;background:#edf4f4;border:1px solid var(--line);padding:15px 17px;color:#617a82;font-size:12px;line-height:1.8;border-radius:10px}
 @media(max-width:900px){.content{padding:24px 16px}.top{padding:22px 15px 22px 68px}}
 @media(max-width:620px){.stats{gap:8px}.stat{padding:13px}.stat strong{font-size:20px}.toolbar{padding:15px}.search{width:100%}.detail-line{grid-template-columns:1fr 1fr}}
+.customer-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:9px 0 15px}
+.customer-actions .btn{min-height:36px}.customer-actions .notice{font-size:11px;color:#67818b}
+@media(max-width:620px){.customer-actions .btn{flex:1}}
 </style><link rel="stylesheet" href="/assets/shared-nav.css?v=1"></head>
 <body><div class="layout"><aside id="ggm-shared-nav"></aside><div class="main">
 <div class="top">건강미 운영센터 / 고객조회</div><main class="content">
@@ -72,12 +75,44 @@ td{border-bottom:1px solid #edf1f2;padding:14px 17px;font-size:12px}
   const search=$('search').value.trim().toLocaleLowerCase('ko-KR');
   return getGroups().filter(g=>g.name.toLocaleLowerCase('ko-KR').includes(search)||g.orders.some(o=>String(o.order_id).toLocaleLowerCase('ko-KR').includes(search)));
  };
+ function downloadCustomerCsv(filename,rows){
+   const safe=value=>{const v=String(value??'');return '"'+(/^[=+@\\-\\t\\r]/.test(v)?'\\t':'')+v.replace(/"/g,'""')+'"';};
+   const blob=new Blob(['\\uFEFF'+rows.map(row=>row.map(safe).join(',')).join('\\r\\n')],{type:'text/csv;charset=utf-8'});
+   const url=URL.createObjectURL(blob),a=document.createElement('a');
+   a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1200);
+ }
+ async function copyCustomerText(value){
+   if(navigator.clipboard?.writeText&&window.isSecureContext){await navigator.clipboard.writeText(value);return}
+   const input=document.createElement('textarea');input.value=value;input.readOnly=true;
+   input.style.cssText='position:fixed;left:-9999px';document.body.append(input);input.select();
+   const copied=document.execCommand('copy');input.remove();if(!copied)throw Error('브라우저 복사 기능을 사용할 수 없습니다.');
+ }
  function showCustomer(name){
   const selected=getGroups().find(g=>g.name===name),panel=$('detail');
   if(!selected){panel.hidden=true;return}
   panel.hidden=false;panel.replaceChildren();
   const heading=document.createElement('h3');heading.textContent=selected.name+' · '+selected.orders.length+'건 주문';panel.append(heading);
   const p=document.createElement('p');p.textContent='아래는 선택한 기간에 조회된 주문이 최신순으로 정렬된 목록입니다.';panel.append(p);
+  const actions=document.createElement('div');actions.className='customer-actions';
+  const excel=document.createElement('button');excel.type='button';excel.className='btn';excel.textContent='이 고객 주문내역 엑셀 저장';
+  const kakao=document.createElement('button');kakao.type='button';kakao.className='btn primary';kakao.textContent='카톡용 텍스트 복사';
+  const status=document.createElement('span');status.className='notice';status.setAttribute('role','status');
+  excel.addEventListener('click',()=>{
+   const rows=[['주문자명','주문번호','주문일','결제상태','주문금액'],
+    ...selected.orders.map(o=>[o.buyer_name,o.order_id,o.order_date,o.payment_status,o.amount])];
+   downloadCustomerCsv('ggm-customer-orders-'+kst(Date.now())+'.csv',rows);
+   status.textContent='주문내역이 저장되었습니다.';
+  });
+  kakao.addEventListener('click',async()=>{
+   const text=['[건강미 고객 주문내역]','주문자명: '+selected.name,
+    '조회기간: 최근 '+$('days').value+'일','주문건수: '+selected.orders.length+'건',
+    '주문금액 합계(참고): '+money(selected.sum),'',
+    ...selected.orders.map(o=>'· '+o.order_id+' / '+String(o.order_date||'').slice(0,10)+' / '+money(o.amount))].join('\n');
+   try{await copyCustomerText(text);status.textContent='카톡용 텍스트가 복사되었습니다.'}
+   catch(e){status.textContent='복사 실패: '+e.message}
+  });
+  actions.append(excel,kakao,status);panel.append(actions);
   const list=document.createElement('div');list.className='detail-list';
   for(const order of [...selected.orders].sort((a,b)=>String(b.order_date).localeCompare(String(a.order_date)))){
    const line=document.createElement('div');line.className='detail-line';
