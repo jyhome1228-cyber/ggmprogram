@@ -121,7 +121,7 @@ async function orders(url, env) {
       'X-Cafe24-Api-Version': API_VERSION
     }
   });
-  if (!api.ok) return respond({ error: '카페24 주문 조회 실패', http_status: api.status }, 502);
+  if (!api.ok) return respond({ error: api.status === 401 ? '카페24 인증이 만료되어 재연결이 필요합니다.' : '카페24 주문 조회 실패', http_status: api.status, authorization_required: api.status === 401 }, api.status === 401 ? 401 : 502);
   const payload = await api.json();
   const list = Array.isArray(payload.orders) ? payload.orders : [];
   return respond({
@@ -435,7 +435,7 @@ export default {
     try {
       if (url.pathname === '/api/status') {
         const saved = await env.GGM_AUTH.get(TOKEN_KEY, 'json');
-        return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token), checked_at: new Date().toISOString() });
+        return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token && (!saved.refresh_expires_at || Number(saved.refresh_expires_at) > Date.now())), checked_at: new Date().toISOString() });
       }
       if (url.pathname === '/api/orders') return await orders(url, env);
       if (url.pathname === '/api/order-explorer') return await exploreOrders(url, env);
