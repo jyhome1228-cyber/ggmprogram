@@ -1,0 +1,59 @@
+<!doctype html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>건강미 GGM OPS | 직원 계정</title><link rel="icon" href="/assets/geonganmi-mark.svg" type="image/svg+xml">
+<style>:root{--brand:#667f89;--bg:#f7f9f9;--text:#253d45;--line:#dfebeb}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,sans-serif}
+main{max-width:970px;margin:60px auto;padding:0 24px}.logo{display:flex;align-items:center;gap:10px}.logo img:first-child{width:45px;height:65px}.logo img:nth-child(2){width:145px}h1{margin:28px 0 4px;font-size:28px}p{color:#799098;margin:0 0 25px}
+.panel{background:white;border:1px solid var(--line);border-radius:13px;padding:24px;margin-top:18px}h2{font-size:17px;margin:0 0 15px}
+.form{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px}.form label{font-size:12px;color:#607e86;font-weight:750}.form input,.form select{width:100%;padding:12px;border:1px solid #d9e6e8;border-radius:8px;margin-top:6px;font:inherit;color:#314a53}
+button{border:1px solid #d9e5e8;background:white;color:#476b76;padding:10px 14px;cursor:pointer;border-radius:8px;font-weight:750}button.primary{background:var(--brand);color:white;border-color:var(--brand)}button:disabled{opacity:.5}
+.actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:17px}.notice{font-size:12px;color:#6b838b;margin-top:13px}table{border-collapse:collapse;width:100%}th,td{padding:13px 10px;text-align:left;border-bottom:1px solid #e9efef;font-size:12px}th{color:#758c93}.badge{background:#eaf1f2;border-radius:7px;padding:5px 9px}a{color:#537580}#status.error{color:#b54f4f}
+@media(max-width:650px){main{margin:24px auto;padding:0 14px}.panel{padding:16px}.form{grid-template-columns:1fr}.form label{display:block}}
+</style></head><body><main>
+<div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
+<h1>직원 계정 관리</h1><p>관리자만 계정을 발급하고 사용을 중지할 수 있습니다. 비밀번호는 안전하게 해시하여 저장합니다.</p>
+<div class="actions"><a href="/">관리자 대시보드로 돌아가기</a><button id="logout" type="button">로그아웃</button></div>
+<section class="panel"><h2>직원 계정 발급</h2><form id="form"><div class="form">
+<label>아이디<input id="username" autocomplete="off" required minlength="4" maxlength="32" pattern="[A-Za-z][A-Za-z0-9._-]{3,31}"></label>
+<label>초기 비밀번호 (12자 이상)<input id="password" type="password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
+<label>권한<select id="role"><option value="staff">직원</option><option value="admin">관리자</option></select></label>
+</div><div class="actions"><button class="primary" type="submit" id="create">계정 생성</button></div></form>
+<div id="status" class="notice" role="status" aria-live="polite"></div></section>
+<section class="panel"><h2>사용자 목록</h2><table><thead><tr><th>아이디</th><th>권한</th><th>상태</th><th>조치</th></tr></thead><tbody id="users"><tr><td colspan="4">로그인 상태 확인 중…</td></tr></tbody></table></section>
+<p class="notice">퇴사 또는 담당자 변경 시 계정을 차단하면 해당 사용자의 모든 세션이 무효화됩니다. 비밀번호를 채팅이나 GitHub에 공유하지 마세요.</p>
+</main><script>
+(() => {'use strict';
+const $=id=>document.getElementById(id);
+const status=(t,err=false)=>{$('status').textContent=t;$('status').className=err?'notice error':'notice'};
+async function request(url,options={}){
+ const r=await fetch(url,{credentials:'same-origin',cache:'no-store',...options});
+ const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'요청 실패');return data;
+}
+async function load(){
+ try{
+  const me=await request('/auth/me');if(me.user?.role!=='admin')throw Error('관리자 권한이 필요합니다.');
+  const data=await request('/auth/users');const tbody=$('users');tbody.replaceChildren();
+  for(const u of data.users||[]){
+   const tr=document.createElement('tr');for(const v of [u.username,u.role==='admin'?'관리자':'직원',u.active?'활성':'차단']){
+    const td=document.createElement('td');td.textContent=v;tr.append(td);
+   }
+   const cell=document.createElement('td');
+   if(u.active&&u.id!==me.user.id){
+    const b=document.createElement('button');b.textContent='계정 차단';b.addEventListener('click',async()=>{
+      if(!confirm(u.username+' 계정의 접근을 차단할까요?'))return;
+      try{await request('/auth/users/deactivate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:u.id})});status('계정이 차단되었습니다.');load()}catch(e){status(e.message,true)}
+    });cell.append(b)
+   }else cell.textContent='—';
+   tr.append(cell);tbody.append(tr);
+  }
+ }catch(e){status(e.message,true);$('create').disabled=true}
+}
+$('form').addEventListener('submit',async e=>{
+ e.preventDefault();$('create').disabled=true;status('계정 등록 중…');
+ try{
+  await request('/auth/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value,role:$('role').value})});
+  $('password').value='';status('계정이 생성되었습니다.');await load()
+ }catch(err){status(err.message,true)}finally{$('create').disabled=false}
+});
+$('logout').addEventListener('click',async()=>{try{await request('/auth/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})}finally{location.assign('/login.html')}});
+load();
+})();
+</script></body></html>
