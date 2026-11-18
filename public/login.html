@@ -23,14 +23,14 @@ button{font:inherit;cursor:pointer}
 </style></head><body><main class="card">
 <div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
 <div class="eyebrow">GGM OPS · TEST ACCESS</div><h1>건강미 로그인</h1><p class="description">건강미 운영관리 시스템</p>
-<form id="form">
+<form id="form" hidden>
 <label for="password">공통 비밀번호</label>
-<input id="password" type="password" autocomplete="current-password" required autofocus>
+<input id="password" type="password" autocomplete="current-password" required>
 <button type="submit" class="primary" id="login">관리자 프로그램 열기</button>
 </form>
 <button id="open" class="primary" type="button" hidden>주문 대시보드 열기</button>
 <button id="logout" class="secondary" type="button" hidden>로그아웃</button>
-<div id="status" class="status" role="status" aria-live="polite">비밀번호를 입력해주세요.</div>
+<div id="status" class="status" role="status" aria-live="polite">로그인 상태 확인 중…</div>
 <div class="foot">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>개발 테스트용 관리자 접근 화면입니다.</div></div>
 </main><script>
 (() => {
@@ -38,14 +38,21 @@ button{font:inherit;cursor:pointer}
 const $=id=>document.getElementById(id),status=$('status');
 function message(s,error=false){status.textContent=s;status.classList.toggle('error',error)}
 function showSession(isValid){
- $('form').hidden=isValid;$('open').hidden=!isValid;$('logout').hidden=!isValid;
- if(isValid)message('로그인 상태가 유지되고 있습니다.');
+ $('form').hidden=isValid;
+ $('open').hidden=!isValid;
+ $('logout').hidden=!isValid;
+ if(isValid)message('이미 로그인되어 있습니다. 대시보드를 열거나 로그아웃할 수 있습니다.');
+ else {message('공통 비밀번호를 입력해주세요.');$('password').focus();}
 }
 async function checkSession(){
  try{
   const response=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-  if(response.ok)showSession(true);
- }catch{ /* Keep the password form available. Never reload or redirect automatically. */ }
+  showSession(response.ok);
+ }catch{
+  $('form').hidden=false;
+  $('open').hidden=true;$('logout').hidden=true;
+  message('로그인 상태를 확인하지 못했습니다. 비밀번호로 다시 시도해주세요.',true);
+ }
 }
 $('form').addEventListener('submit',async e=>{
  e.preventDefault();
@@ -68,7 +75,7 @@ $('open').addEventListener('click',()=>location.assign('/app'));
 $('logout').addEventListener('click',async()=>{
  $('logout').disabled=true;
  try{await fetch('/auth/shared/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'same-origin'})}catch{}
- finally{showSession(false);$('logout').disabled=false;message('로그아웃되었습니다. 비밀번호를 입력해주세요.')}
+ finally{showSession(false);$('logout').disabled=false;message('로그아웃되었습니다. 공통 비밀번호를 입력해주세요.')}
 });
 checkSession();
 })();
