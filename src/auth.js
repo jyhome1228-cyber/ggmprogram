@@ -75,6 +75,12 @@ async function handleAuth(request,env,path){
     const count=await env.AUTH_DB.prepare('SELECT COUNT(*) AS n FROM users').first();
     return json({setup_required:Number(count?.n||0)===0});
   }
+  if(method==='GET' && path==='/auth/users'){
+    const admin=await userBySession(request,env);
+    if(!admin||admin.role!=='admin')return json({error:'관리자 권한이 필요합니다.'},403);
+    const result=await env.AUTH_DB.prepare('SELECT id,username,role,active,created_at FROM users ORDER BY id ASC LIMIT 100').all();
+    return json({users:result.results||[]});
+  }
   if(method!=='POST')return json({error:'지원하지 않는 요청입니다.'},405);
   if(!allowedOrigin(request))return json({error:'허용되지 않은 요청입니다.'},403);
   let body;try{body=await bodyJson(request)}catch{return json({error:'요청 형식을 확인해주세요.'},400)}
@@ -116,6 +122,23 @@ async function handleAuth(request,env,path){
       await env.AUTH_DB.prepare('DELETE FROM sessions WHERE token_hash=?').bind(await sha(token)).run();
     }
     return new Response(JSON.stringify({ok:true}),{status:200,headers:{...JSON_HEADERS,'Set-Cookie':setSessionCookie('',0)}});
+  }
+  if(path==='/auth/users/deactivate'){
+    const admin=await userBySession(request,env);
+    if(!admin||admin.role!=='admin')return json({error:'관리자 권한이 필요합니다.'},403);
+    const id=Number(body.user_id);
+    if(!Number.isInteger(id)||id<1||id===admin.id)return json({error:'다른 사용자 계정을 선택해주세요.'},400);
+    const target=await env.AUTH_DB.prepare('SELECT id,role,active FROM users WHERE id=?').bind(id).first();
+    if(!target)return json({error:'사용자를 찾을 수 없습니다.'},404);
+    if(target.role==='admin'){
+      const other=await env.AUTH_DB.prepare('SELECT COUNT(*) AS n FROM users WHERE role=\'admin\' AND active=1 AND id!=?').bind(id).first();
+      if(Number(other?.n||0)<1)return json({error:'마지막 관리자 계정은 차단할 수 없습니다.'},409);
+    }
+    await env.AUTH_DB.batch([
+      env.AUTH_DB.prepare('UPDATE users SET active=0 WHERE id=?').bind(id),
+      env.AUTH_DB.prepare('DELETE FROM sessions WHERE user_id=?').bind(id)
+    ]);
+    return json({ok:true});
   }
   if(path==='/auth/users'){
     const admin=await userBySession(request,env);
