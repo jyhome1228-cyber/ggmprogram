@@ -449,7 +449,9 @@ export default {
         const isAPI = path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/');
         const authenticated = publicPath ? false : await sharedValid(request,env);
         if (!publicPath && !authenticated) {
-          if (isAPI) return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
+          if (isAPI || path === '/app' || path === '/index.html') {
+            return sharedReply({error:'대시보드 접속 시 로그인 쿠키가 확인되지 않았습니다.',code:'LOGIN_REQUIRED'},401);
+          }
           // Static login page served directly with HTTP 200; zero 3xx hops.
           const loginReq = new Request(new URL('/login.html',request.url),{method:'GET',headers:request.headers});
           const loginAsset = await env.ASSETS.fetch(loginReq);
@@ -560,11 +562,17 @@ export default {
       // Assets serve the frontend only. No sensitive API values should be cached in assets.
       // With html_handling=none, explicitly map the app root to the index asset.
       // This prevents canonical .html redirects from forming login loops.
-      if (path === '/' || path === '/app') {
-        const assetRequest = new Request(new URL('/index.html',request.url),{method:'GET',headers:request.headers});
+      if (path === '/' || path === '/app' || path === '/index.html') {
+        // The app entry must either be a verified dashboard or a clear error;
+        // never return the login form under /app or /index.html.
+        const assetRequest = new Request(new URL('/index.html',request.url),{method:'GET'});
         const asset=await env.ASSETS.fetch(assetRequest);
-        if(asset.status>=300 && asset.status<400)return respond({error:'대시보드 HTML 경로 리디렉션 오류'},503);
-        return new Response(asset.body,{status:asset.status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY'}});
+        if(asset.status!==200)return respond({error:'대시보드 정적 파일을 읽을 수 없습니다.',asset_status:asset.status},503);
+        const html=await asset.text();
+        if(!html.includes('id="refresh"') || !html.includes('id="reconnect"')) {
+          return respond({error:'대시보드 파일 대신 다른 페이지가 반환되었습니다.',code:'ASSET_MISMATCH'},503);
+        }
+        return new Response(html,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY','X-GGM-Page':'dashboard'}});
       }
       return env.ASSETS.fetch(request);
     } catch (err) {
