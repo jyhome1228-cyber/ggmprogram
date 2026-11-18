@@ -41,7 +41,7 @@ th{padding:13px 16px;background:#f6f9f9;color:#798e97;font-size:11px;text-align:
 <button class="btn" id="stop" disabled>중단</button>
 <button class="btn" id="csv" disabled>엑셀 내보내기 (CSV)</button><span id="status">조회 준비</span></div><div class="progress" id="progress" hidden><div id="bar"></div></div></section>
 <section class="panel"><div class="head"><h2>카페24 입금 상태 목록</h2><small id="summary">조회 전</small></div><div class="table-scroll"><table><thead><tr>
-<th>주문번호</th><th>주문자</th><th>입금예정자</th><th>주문일</th><th>결제수단</th><th>결제상태</th><th>주문금액</th><th>입금처리일</th></tr></thead>
+<th>주문번호</th><th>주문자</th><th>입금예정자 (제공 시)</th><th>주문일</th><th>결제수단</th><th>결제상태</th><th>주문금액</th><th>입금처리일</th></tr></thead>
 <tbody id="rows"><tr><td class="empty" colspan="8">주문조회가 시작됩니다.</td></tr></tbody></table></div></section>
 <div class="info"><strong>입금확인 처리 안내</strong>
 가상계좌는 입금되면 PG를 통해 카페24에 자동 반영됩니다. 일반 무통장입금은 은행 입금내역 확인 또는 카페24 자동입금확인 서비스가 필요합니다.
@@ -56,8 +56,14 @@ th{padding:13px 16px;background:#f6f9f9;color:#798e97;font-size:11px;text-align:
  const kst=t=>new Date(t+9*3600000).toISOString().slice(0,10);
  const iso=t=>new Date(t).toISOString().slice(0,10);
  const fmt=n=>n==null?'—':Number(n).toLocaleString('ko-KR')+'원';
- const label=o=>{const m=Array.isArray(o.payment_method)?o.payment_method:[o.payment_method];if(m.includes('icash'))return '가상계좌';if(m.includes('cash'))return '무통장';return (o.payment_method_name||[]).join(', ')};
- const method=o=>(o.payment_method||[]).includes('icash')?'icash':(o.payment_method||[]).includes('cash')?'cash':'other';
+ const paymentCodes=o=>(Array.isArray(o.payment_method)?o.payment_method:[o.payment_method]).filter(Boolean).map(x=>String(x).split(':')[0].trim().toLowerCase());
+ const method=o=>{
+   const codes=paymentCodes(o),names=(o.payment_method_name||[]).join(' ').toLowerCase();
+   if(codes.includes('icash')||names.includes('가상계좌'))return 'icash';
+   if(codes.includes('cash')||names.includes('무통장'))return 'cash';
+   return 'other';
+ };
+ const label=o=>method(o)==='icash'?'가상계좌':method(o)==='cash'?'무통장':(o.payment_method_name||[]).join(', ')||'미제공';
  function filtered(){
   const methodFilter=$('method').value,payment=$('payment').value,q=$('search').value.trim().toLowerCase();
   return state.orders.filter(o=>(method(o)==='cash'||method(o)==='icash')&&(methodFilter==='all'||methodFilter===method(o))&&(payment==='all'||o.payment_status===payment)&&[o.order_id,o.buyer_name,o.billing_name].some(x=>String(x||'').toLowerCase().includes(q)))
