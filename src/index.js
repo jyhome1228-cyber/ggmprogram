@@ -464,7 +464,7 @@ export default {
         if (path.startsWith('/auth/')) {
           return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
         }
-      }      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
+      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
       if (enforce) {
         // Fail closed if dedicated login is switched on before the D1 binding exists.
         if (!env.AUTH_DB) return authJson({error:'로그인 데이터베이스가 연결되지 않았습니다.'},503);
