@@ -438,6 +438,7 @@ export default {
     const enforce = mode === 'individual';
     const path = url.pathname;
     try {
+      if (path === '/auth/mode') return sharedReply({mode});
       if (path.startsWith('/auth/shared/')) return await handleShared(request,env,path);
       if (mode === 'shared') {
         if (!sharedSecretsReady(env)) return sharedReply({error:'공통 비밀번호 로그인 설정이 완료되지 않았습니다. Cloudflare Access를 유지하세요.'},503);
