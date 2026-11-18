@@ -28,6 +28,31 @@ h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p
 #message{font-size:12px;color:#718890}.error{color:#ab554d!important}
 @media(max-width:950px){.side{width:76px;padding:18px 7px}.wordmark,.brand small{display:none}.mark{width:40px;height:56px}.side a{font-size:11px;padding:12px 7px}.stats{grid-template-columns:repeat(2,1fr)}.content{padding:26px 18px}.top{padding:22px 18px}}
 @media(max-width:550px){.side{width:55px}.mark{width:30px;height:45px}.side a{font-size:9px}.stats{gap:8px}.stat{padding:15px}.stat .val{font-size:19px}.content{padding:20px 11px}.chart-scroll{padding:14px}}
+
+/* Order details - accessible, read-only modal */
+.sales-order-link{appearance:none;border:0;background:none;padding:0;color:#426877;text-decoration:underline;text-underline-offset:3px;font:inherit;font-weight:750;cursor:pointer}
+.sales-order-link:hover{color:#204852}.sales-order-link:focus-visible{outline:2px solid #667f89;outline-offset:4px;border-radius:2px}
+#salesOrderDialog{width:min(850px,calc(100vw - 24px));max-height:min(88dvh,950px);padding:0;border:1px solid #dce7e9;border-radius:16px;color:var(--ink);box-shadow:0 28px 90px #162e3840;overflow:hidden}
+#salesOrderDialog::backdrop{background:#152e3999}
+.sales-dialog-shell{display:flex;flex-direction:column;max-height:min(88dvh,950px)}
+.sales-dialog-head{flex:none;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 26px 18px;border-bottom:1px solid #e2e9ea}
+.sales-dialog-head h2{margin:4px 0 0;font-size:22px;overflow-wrap:anywhere}
+.sales-dialog-head .eyebrow{font-size:10px}.sales-dialog-close{flex-shrink:0}
+.sales-dialog-content{overflow-y:auto;padding:22px 26px 28px;overscroll-behavior:contain}
+.sales-dialog-section{margin-bottom:22px}.sales-dialog-section h3{font-size:14px;margin:0 0 11px;color:#34545d}
+.sales-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.sales-detail-cell{border:1px solid #e4eced;border-radius:9px;padding:12px 14px;min-width:0;overflow-wrap:anywhere}
+.sales-detail-cell .key{display:block;font-size:11px;color:#82969c;margin-bottom:4px}
+.sales-detail-cell .value{display:block;font-size:13px;color:#263e48;font-weight:650;white-space:pre-wrap;overflow-wrap:anywhere}
+.sales-detail-item{border:1px solid #e5ebed;border-radius:9px;padding:14px;margin:8px 0}
+.sales-detail-item strong{font-size:13px;overflow-wrap:anywhere}
+.sales-detail-item p{color:#647e87;font-size:12px;margin-top:6px;white-space:pre-wrap;overflow-wrap:anywhere}
+.sales-detail-note{font-size:12px;color:#8b6552;background:#fff7f0;border:1px solid #f0ded4;border-radius:8px;padding:11px 13px;margin-bottom:13px}
+.sales-dialog-footer{flex:none;padding:12px 26px;border-top:1px solid #e2e9ea;background:#f7f9f9;font-size:11px;color:#84969c}
+.sales-dialog-loading{display:flex;align-items:center;gap:10px;color:#607e88;padding:32px 0}
+.sales-dialog-spinner{width:22px;height:22px;border:3px solid #dbe7e9;border-top-color:var(--brand);border-radius:50%;animation:salesSpin .75s linear infinite}
+@keyframes salesSpin{to{transform:rotate(360deg)}}
+@media(max-width:600px){#salesOrderDialog{width:calc(100vw - 14px);max-height:94dvh}.sales-dialog-shell{max-height:94dvh}.sales-dialog-head{padding:17px}.sales-dialog-content{padding:16px}.sales-detail-grid{grid-template-columns:1fr}.sales-dialog-footer{padding:12px 17px}.sales-dialog-head h2{font-size:17px}}
 </style><link rel="stylesheet" href="/assets/shared-nav.css?v=1">
 </head><body>
 <div class="layout"><aside id="ggm-shared-nav"></aside>
@@ -49,6 +74,16 @@ h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p
 <div class="footer"><span id="rowCount" class="meta">—</span><span class="meta">주문번호와 주문금액은 카페24 실데이터 · 읽기 전용</span></div></section>
 <div class="notice">이 화면의 판매액은 <strong>주문일 기준 결제완료 주문금액</strong>을 더한 참고 수치입니다. '취소'로 표시된 주문은 합산에서 제외하지만, 부분취소·반품·추가환불·정산수수료·실입금액은 반영하지 않습니다. 따라서 회계상 확정매출이나 PG 정산액으로 사용하면 안 됩니다. 최대 3개월을 30일씩 나누어 조회하며 카페24 페이지 조회 한도나 오류 시 결과를 <strong>부분 조회</strong>로 표시합니다.</div>
 </main></div></div>
+<dialog id="salesOrderDialog" aria-labelledby="salesDialogTitle">
+  <div class="sales-dialog-shell">
+    <div class="sales-dialog-head">
+      <div><div class="eyebrow">ORDER DETAIL</div><h2 id="salesDialogTitle">주문 상세정보</h2></div>
+      <button type="button" id="salesDialogClose" class="btn sales-dialog-close" aria-label="주문 상세 닫기">닫기</button>
+    </div>
+    <div class="sales-dialog-content" id="salesDialogBody" role="status" aria-live="polite"></div>
+    <div class="sales-dialog-footer">카페24 실시간 주문정보 · 조회 전용 · 고객정보 별도 저장 없음</div>
+  </div>
+</dialog>
 <script>
 (() => {
 'use strict';
@@ -85,6 +120,119 @@ function aggregated(){
  }
  return [...map.values()];
 }
+
+let detailController=null;
+const detailDialog=$('salesOrderDialog');
+const detailBody=$('salesDialogBody');
+const detailsText=value=>value==null||value===''?'미제공':String(value);
+function detailCell(label,value){
+ const cell=document.createElement('div');cell.className='sales-detail-cell';
+ const key=document.createElement('span');key.className='key';key.textContent=label;
+ const val=document.createElement('span');val.className='value';val.textContent=detailsText(value);
+ cell.append(key,val);return cell;
+}
+function detailSection(title){
+ const section=document.createElement('section');section.className='sales-dialog-section';
+ const h=document.createElement('h3');h.textContent=title;section.append(h);
+ detailBody.append(section);return section;
+}
+function detailGrid(section,entries){
+ const grid=document.createElement('div');grid.className='sales-detail-grid';
+ for(const [label,value] of entries)grid.append(detailCell(label,value));
+ section.append(grid);
+}
+function detailNote(text){
+ const el=document.createElement('div');el.className='sales-detail-note';el.textContent=text;detailBody.append(el);
+}
+function optionDetails(raw){
+ if(!raw)return '';
+ if(typeof raw==='string')return raw;
+ if(Array.isArray(raw))return raw.map(optionDetails).filter(Boolean).join(' / ');
+ if(typeof raw==='object'){
+  const v=raw.option_value??raw.option_text??raw.value??null;
+  const text=optionDetails(v);
+  return [raw.option_name||'',text].filter(Boolean).join(': ');
+ }
+ return String(raw);
+}
+function renderDetail(data,summary){
+ detailBody.replaceChildren();
+ detailGrid(detailSection('주문 기본정보'),[
+  ['주문번호',data.order_id],['주문일',data.order_date||summary.order_date],
+  ['결제상태',data.payment_status==='T'?'결제완료':data.payment_status==='F'?'미결제':data.payment_status==='M'?'부분결제':data.payment_status],
+  ['주문상태',data.order_status],['배송상태',data.shipping_status],
+  ['주문금액',data.amount!=null?currency(data.amount):summary.amount!=null?currency(summary.amount):null],
+  ['입금·결제일',data.payment_date],['취소여부',data.canceled==='T'?'취소표기':data.canceled==='F'?'일반':data.canceled]
+ ]);
+ detailGrid(detailSection('주문자 정보'),[
+  ['주문자',data.buyer_name||summary.buyer_name],['휴대전화',data.buyer_cellphone],
+  ['전화번호',data.buyer_phone],['이메일',data.buyer_email]
+ ]);
+ if(!data.receivers?.length)detailNote('카페24에서 수령자·배송지 정보를 제공하지 않았습니다.');
+ for(let i=0;i<(data.receivers||[]).length;i++){
+  const r=data.receivers[i],address=r.address_full||[r.address1,r.address2].filter(Boolean).join(' ');
+  detailGrid(detailSection('수령자 및 배송지'+(data.receivers.length>1?' '+(i+1):'')),[
+   ['수령자',r.name],['휴대전화',r.cellphone],['전화번호',r.phone],
+   ['우편번호',r.zipcode],['배송주소',address],['배송메시지',r.shipping_message],
+   ['배송번호',r.shipping_code],['희망배송일',r.wished_delivery_date]
+  ]);
+ }
+ const itemsSection=detailSection('주문상품 및 옵션');
+ if(!data.items?.length){const p=document.createElement('p');p.textContent='주문상품 정보가 제공되지 않았습니다.';itemsSection.append(p)}
+ for(const item of data.items||[]){
+  const box=document.createElement('article');box.className='sales-detail-item';
+  const name=document.createElement('strong');name.textContent=detailsText(item.product_name);
+  const info=document.createElement('p');info.textContent=[
+   '수량 '+detailsText(item.quantity),item.options?'옵션 '+optionDetails(item.options):item.option_name?'옵션 '+item.option_name:'',
+   item.order_status?'품목상태 '+item.order_status:''
+  ].filter(Boolean).join(' · ');
+  box.append(name,info);itemsSection.append(box);
+ }
+ const ships=detailSection('배송 및 송장');
+ if(!data.shipments?.length){const p=document.createElement('p');p.textContent='등록된 송장정보가 없거나 카페24에서 제공하지 않았습니다.';ships.append(p)}
+ for(const item of data.shipments||[]){
+  const box=document.createElement('article');box.className='sales-detail-item';
+  const name=document.createElement('strong');name.textContent=item.shipping_company_name||item.shipping_company_code||'택배사 미제공';
+  const info=document.createElement('p');info.textContent=[
+   '송장번호 '+detailsText(item.tracking_no),'배송번호 '+detailsText(item.shipping_code),
+   '배송상태 '+detailsText(item.status),item.shipping_date?'출고일 '+item.shipping_date:''
+  ].filter(Boolean).join(' · ');
+  box.append(name,info);ships.append(box);
+ }
+ for(const [key,label] of [['items','주문상품'],['receivers','수령자'],['shipments','배송송장']]){
+  if(data.partial_errors?.[key])detailNote(label+' 추가 조회 실패: '+data.partial_errors[key]+' · 다른 정보는 정상적으로 표시했습니다.');
+ }
+}
+async function openOrderDetail(order){
+ if(detailController)detailController.abort();
+ detailController=new AbortController();
+ const controller=detailController;
+ $('salesDialogTitle').textContent='주문 '+order.order_id;
+ detailBody.replaceChildren();
+ const loader=document.createElement('div');loader.className='sales-dialog-loading';
+ const spin=document.createElement('span');spin.className='sales-dialog-spinner';spin.setAttribute('aria-hidden','true');
+ const message=document.createElement('span');message.textContent='카페24 주문자·배송정보를 조회하고 있습니다…';
+ loader.append(spin,message);detailBody.append(loader);
+ if(!detailDialog.open)detailDialog.showModal();
+ try{
+  const response=await fetch('/api/orders/'+encodeURIComponent(order.order_id)+'/detail',{
+   credentials:'same-origin',cache:'no-store',signal:controller.signal
+  });
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'주문 상세정보 조회 실패 (HTTP '+response.status+')');
+  if(controller.signal.aborted)return;
+  renderDetail(data,order);
+ }catch(e){
+  if(controller.signal.aborted)return;
+  detailBody.replaceChildren();
+  detailNote(e.message+' · 카페24 연결 상태 또는 주문 API 권한을 확인해주세요.');
+ }finally{
+  if(detailController===controller)detailController=null;
+ }
+}
+$('salesDialogClose').addEventListener('click',()=>detailDialog.close());
+detailDialog.addEventListener('close',()=>{detailController?.abort();detailController=null});
+
 function renderChart(){
  const target=$('chart');target.replaceChildren();if(!state.range)return;
  const series=aggregated(),max=Math.max(1,...series.map(x=>x.total));
@@ -110,7 +258,13 @@ function renderOrders(){
  $('selectionTitle').textContent=!state.selection?'선택 기간 전체 주문내역':state.mode==='daily'?state.selection+' 주문내역':state.selection+' 시작 주간 주문내역';
  if(!list.length){let r=document.createElement('tr'),c=document.createElement('td');c.colSpan=7;c.className='empty';c.textContent=state.busy?'카페24 주문을 불러오는 중입니다.':'해당 날짜의 주문이 없습니다.';r.append(c);tbody.append(r)}
  for(const o of list){
-  const r=document.createElement('tr');td(r,o.order_id,'strong');td(r,o.buyer_name||'미제공');td(r,String(o.order_date||'').slice(0,19).replace('T',' '));
+  const r=document.createElement('tr');
+  const orderCell=document.createElement('td');
+  const orderButton=document.createElement('button');orderButton.type='button';orderButton.className='sales-order-link';orderButton.textContent=o.order_id;
+  orderButton.setAttribute('aria-label','주문 '+o.order_id+' 상세정보 열기');
+  orderButton.addEventListener('click',()=>openOrderDetail(o));
+  orderCell.append(orderButton);r.append(orderCell);
+  td(r,o.buyer_name||'미제공');td(r,String(o.order_date||'').slice(0,19).replace('T',' '));
   td(r,o.payment_status==='T'?'결제완료':o.payment_status==='F'?'미결제':o.payment_status||'미제공');
   td(r,canceled(o)?'취소 표기':'일반');td(r,o.amount==null?'—':currency(o.amount));td(r,included(o)?'포함':'미포함');tbody.append(r);
  }
