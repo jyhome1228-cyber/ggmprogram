@@ -19,7 +19,7 @@ function environment(extra={}){
   ASSETS:{
    async fetch(request){
     const path=new URL(request.url).pathname;files.push(path);
-    return new Response(path==='/index.html'?'DASHBOARD PAGE':'LOGIN PAGE',{
+    return new Response(path==='/index.html'?'<button id="refresh"></button><button id="reconnect"></button>DASHBOARD PAGE':'LOGIN PAGE',{
      status:200,headers:{'Content-Type':'text/html'}
     });
    }
@@ -42,7 +42,8 @@ test('public login is stable: no redirects, mode visible, unauthenticated API de
  const app=await visit('/app',env);
  assert.equal(app.status,200);
  assert.equal(app.headers.get('Location'),null);
- assert.equal(await app.text(),'LOGIN PAGE');
+ assert.equal(app.status,401);
+ assert.equal((await app.json()).code,'LOGIN_REQUIRED');
  assert.equal(files.includes('/index.html'),false);
  const forbidden=await visit('/api/orders',env);
  assert.equal(forbidden.status,401);
@@ -66,14 +67,16 @@ test('password -> signed session -> dashboard -> logout without redirect loop',a
  const dashboard=await visit('/app',env,{headers:{Cookie:cookie}});
  assert.equal(dashboard.status,200);
  assert.equal(dashboard.headers.get('location'),null);
- assert.equal(await dashboard.text(),'DASHBOARD PAGE');
+ assert.match(await dashboard.text(),/DASHBOARD PAGE/);
+ assert.equal(dashboard.headers.get('X-GGM-Page'),'dashboard');
  const logout=await visit('/auth/shared/logout',env,{
   method:'POST',headers:{...headers,Cookie:cookie},body:'{}'
  });
  assert.equal(logout.status,200);
  assert.match(logout.headers.get('set-cookie'),/Max-Age=0/);
  const expired=await visit('/app',env);
- assert.equal(await expired.text(),'LOGIN PAGE');
+ assert.equal(expired.status,401);
+ assert.equal((await expired.json()).code,'LOGIN_REQUIRED');
 });
 test('cross-origin password submissions and missing secrets are blocked',async()=>{
  const {env}=environment();
