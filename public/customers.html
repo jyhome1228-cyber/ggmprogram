@@ -76,8 +76,11 @@ td{border-bottom:1px solid #edf1f2;padding:14px 17px;font-size:12px}
   return getGroups().filter(g=>g.name.toLocaleLowerCase('ko-KR').includes(search)||g.orders.some(o=>String(o.order_id).toLocaleLowerCase('ko-KR').includes(search)));
  };
  function downloadCustomerCsv(filename,rows){
-   const safe=value=>{const v=String(value??'');return '"'+(/^[=+@\\-\\t\\r]/.test(v)?'\\t':'')+v.replace(/"/g,'""')+'"';};
-   const blob=new Blob(['\\uFEFF'+rows.map(row=>row.map(safe).join(',')).join('\\r\\n')],{type:'text/csv;charset=utf-8'});
+   const safe=value=>{
+     const v=String(value??'');
+     return '"'+(/^[=+@\-\t\r]/.test(v)?'\t':'')+v.replace(/"/g,'""')+'"';
+   };
+   const blob=new Blob(['\uFEFF'+rows.map(row=>row.map(safe).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
    const url=URL.createObjectURL(blob),a=document.createElement('a');
    a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),1200);
