@@ -53,6 +53,10 @@ h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p
 .sales-dialog-spinner{width:22px;height:22px;border:3px solid #dbe7e9;border-top-color:var(--brand);border-radius:50%;animation:salesSpin .75s linear infinite}
 @keyframes salesSpin{to{transform:rotate(360deg)}}
 @media(max-width:600px){#salesOrderDialog{width:calc(100vw - 14px);max-height:94dvh}.sales-dialog-shell{max-height:94dvh}.sales-dialog-head{padding:17px}.sales-dialog-content{padding:16px}.sales-detail-grid{grid-template-columns:1fr}.sales-dialog-footer{padding:12px 17px}.sales-dialog-head h2{font-size:17px}}
+.sales-export-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 26px;border-top:1px solid #e3ebed;background:#fcfdfd}
+.sales-export-actions .btn{min-height:36px}
+.sales-export-actions .export-feedback{font-size:11px;color:#557480;flex:1;min-width:120px}
+@media(max-width:600px){.sales-export-actions{padding:12px 16px}.sales-export-actions .btn{flex:1}}
 </style><link rel="stylesheet" href="/assets/shared-nav.css?v=1">
 </head><body>
 <div class="layout"><aside id="ggm-shared-nav"></aside>
@@ -81,6 +85,12 @@ h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p
       <button type="button" id="salesDialogClose" class="btn sales-dialog-close" aria-label="주문 상세 닫기">닫기</button>
     </div>
     <div class="sales-dialog-content" id="salesDialogBody" role="status" aria-live="polite"></div>
+    <div class="sales-export-actions">
+      <button class="btn" type="button" id="salesExportOrder" disabled>이 주문 엑셀 저장</button>
+      <button class="btn" type="button" id="salesExportCustomer" disabled>고객정보 엑셀 저장</button>
+      <button class="btn primary" type="button" id="salesCopyKakao" disabled>카톡용 텍스트 복사</button>
+      <span class="export-feedback" id="salesExportFeedback" role="status" aria-live="polite"></span>
+    </div>
     <div class="sales-dialog-footer">카페24 실시간 주문정보 · 조회 전용 · 고객정보 별도 저장 없음</div>
   </div>
 </dialog>
@@ -120,6 +130,91 @@ function aggregated(){
  }
  return [...map.values()];
 }
+
+
+let currentDetail=null;
+function csvSafe(value){
+ const v=String(value??'');
+ return '"'+(/^[=+@\-\\t\\r]/.test(v)?'\t':'')+v.replace(/"/g,'""')+'"';
+}
+function downloadRows(name,rows){
+ const data='\uFEFF'+rows.map(row=>row.map(csvSafe).join(',')).join('\r\n');
+ const blob=new Blob([data],{type:'text/csv;charset=utf-8'});
+ const uri=URL.createObjectURL(blob),link=document.createElement('a');
+ link.href=uri;link.download=name;document.body.append(link);link.click();link.remove();
+ window.setTimeout(()=>URL.revokeObjectURL(uri),1200);
+}
+function currentData(){if(!currentDetail)throw Error('주문 상세 조회가 끝나지 않았습니다.');return currentDetail}
+function customerRows(d){
+ const rows=[['구분','항목','내용'],['주문','주문번호',d.order_id],
+ ['주문자','이름',d.buyer_name],['주문자','휴대전화',d.buyer_cellphone],
+ ['주문자','전화번호',d.buyer_phone],['주문자','이메일',d.buyer_email]];
+ for(let i=0;i<(d.receivers||[]).length;i++){
+  const r=d.receivers[i],n='수령자 '+(i+1),address=r.address_full||[r.address1,r.address2].filter(Boolean).join(' ');
+  rows.push([n,'이름',r.name],[n,'휴대전화',r.cellphone],[n,'전화번호',r.phone],
+    [n,'우편번호',r.zipcode],[n,'배송주소',address],[n,'배송메시지',r.shipping_message],
+    [n,'배송번호',r.shipping_code]);
+ }
+ return rows;
+}
+function orderRows(d){
+ const rows=[...customerRows(d),['주문','주문일',d.order_date],
+  ['주문','주문금액',d.amount],['주문','결제상태',d.payment_status],
+  ['주문','결제일',d.payment_date],['주문','주문상태',d.order_status],
+  ['주문','배송상태',d.shipping_status],['주문','취소여부',d.canceled]];
+ for(let i=0;i<(d.items||[]).length;i++){
+  const v=d.items[i],n='상품 '+(i+1);
+  rows.push([n,'상품명',v.product_name],[n,'상품번호',v.product_no],
+   [n,'옵션',optionDetails(v.options)||v.option_name],[n,'수량',v.quantity],[n,'상태',v.order_status]);
+ }
+ for(let i=0;i<(d.shipments||[]).length;i++){
+  const v=d.shipments[i],n='송장 '+(i+1);
+  rows.push([n,'택배사',v.shipping_company_name||v.shipping_company_code],
+   [n,'운송장번호',v.tracking_no],[n,'배송상태',v.status],[n,'배송번호',v.shipping_code]);
+ }
+ return rows;
+}
+function kakaoText(d){
+ const lines=['[건강미 주문 안내]','주문번호: '+detailsText(d.order_id),
+  '주문자: '+detailsText(d.buyer_name),'주문일: '+detailsText(d.order_date),
+  '주문금액: '+(d.amount==null?'미제공':currency(d.amount)),
+  '결제상태: '+detailsText(d.payment_status),
+  '','[주문상품]'];
+ (d.items||[]).forEach((v,i)=>lines.push((i+1)+'. '+detailsText(v.product_name)+' / '+(optionDetails(v.options)||v.option_name||'옵션 없음')+' / '+detailsText(v.quantity)+'개'));
+ lines.push('','[배송정보]');
+ (d.receivers||[]).forEach((r,i)=>{
+  lines.push('수령자 '+(i+1)+': '+detailsText(r.name),
+   '연락처: '+detailsText(r.cellphone||r.phone),
+   '배송지: '+detailsText(r.address_full||[r.address1,r.address2].filter(Boolean).join(' ')),
+   '배송메시지: '+detailsText(r.shipping_message));
+ });
+ (d.shipments||[]).forEach((v,i)=>lines.push('택배 '+(i+1)+': '+detailsText(v.shipping_company_name||v.shipping_company_code)+' / 송장 '+detailsText(v.tracking_no)));
+ if(!d.receivers?.length)lines.push('배송지: 미제공');
+ if(!d.items?.length)lines.push('상품 상세: 미제공');
+ return lines.join('\n');
+}
+async function copyText(text){
+ if(navigator.clipboard?.writeText&&window.isSecureContext){await navigator.clipboard.writeText(text);return}
+ const area=document.createElement('textarea');area.value=text;area.setAttribute('readonly','');
+ area.style.cssText='position:fixed;left:-9999px;top:0';document.body.append(area);area.select();
+ const ok=document.execCommand('copy');area.remove();if(!ok)throw Error('복사할 수 없습니다.');
+}
+function exportFeedback(text){$('salesExportFeedback').textContent=text}
+function enableExports(enabled){
+ for(const id of ['salesExportOrder','salesExportCustomer','salesCopyKakao'])$(id).disabled=!enabled;
+}
+$('salesExportOrder').addEventListener('click',()=>{
+ try{const d=currentData();downloadRows('ggm-order-'+d.order_id+'.csv',orderRows(d));exportFeedback('주문정보 CSV 저장 완료')}
+ catch(e){exportFeedback(e.message)}
+});
+$('salesExportCustomer').addEventListener('click',()=>{
+ try{const d=currentData();downloadRows('ggm-customer-'+d.order_id+'.csv',customerRows(d));exportFeedback('고객정보 CSV 저장 완료')}
+ catch(e){exportFeedback(e.message)}
+});
+$('salesCopyKakao').addEventListener('click',async()=>{
+ try{await copyText(kakaoText(currentData()));exportFeedback('카톡용 텍스트가 복사되었습니다. 대화창에 붙여넣으세요.')}
+ catch(e){exportFeedback('복사 실패: '+e.message)}
+});
 
 let detailController=null;
 const detailDialog=$('salesOrderDialog');
@@ -204,6 +299,7 @@ function renderDetail(data,summary){
  }
 }
 async function openOrderDetail(order){
+ currentDetail=null;enableExports(false);exportFeedback('');
  if(detailController)detailController.abort();
  detailController=new AbortController();
  const controller=detailController;
@@ -222,6 +318,7 @@ async function openOrderDetail(order){
   if(!response.ok)throw Error(data.error||'주문 상세정보 조회 실패 (HTTP '+response.status+')');
   if(controller.signal.aborted)return;
   renderDetail(data,order);
+  currentDetail=data;enableExports(true);
  }catch(e){
   if(controller.signal.aborted)return;
   detailBody.replaceChildren();
@@ -231,7 +328,7 @@ async function openOrderDetail(order){
  }
 }
 $('salesDialogClose').addEventListener('click',()=>detailDialog.close());
-detailDialog.addEventListener('close',()=>{detailController?.abort();detailController=null});
+detailDialog.addEventListener('close',()=>{detailController?.abort();detailController=null;currentDetail=null;enableExports(false)});
 
 function renderChart(){
  const target=$('chart');target.replaceChildren();if(!state.range)return;
