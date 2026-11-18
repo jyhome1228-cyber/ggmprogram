@@ -5,6 +5,7 @@
     ['/products.html','상품 목록'],
     ['/explorer.html','주문자·제품 조회'],
     ['/sales.html','판매액·매출 분석'],
+    ['/payments.html','무통장·가상계좌 입금 확인'],
     ['/backup.html','배송 데이터 백업'],
     ['/shipping.html','배송 점검']
   ];
