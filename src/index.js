@@ -1,3 +1,4 @@
+import { handleShared, valid as sharedValid, secretsReady as sharedReady, reply as sharedReply } from './shared-auth.js';
 // GGM OPS — Cafe24 read-only Worker
 // Protected at the edge by Cloudflare Access (ALL traffic).
 const MALL_ID = 'ggmspa';
@@ -430,15 +431,32 @@ export default {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
     const url = new URL(request.url);
     if (url.origin !== ORIGIN) return respond({ error: '잘못된 호스트' }, 400);
-    // Existing Cloudflare Access protects all routes.
-    // Temporary shared-login and employee-login code is dormant during QA.
     const path = url.pathname;
+    const shared = env.GGM_AUTH_MODE === 'shared';
     try {
+      // This is a staged login system. Cloudflare Access remains active during QA.
+      if (path === '/auth/mode') return sharedReply({mode:shared?'shared':'access',ready:!shared||sharedReady(env)});
+      if (shared && path.startsWith('/auth/shared/')) return handleShared(request,env,path);
+      if (shared) {
+        if (!sharedReady(env)) return sharedReply({error:'공통 로그인 비밀값 설정을 확인해주세요.'},503);
+        const assetsPublic=path === '/login.html'||path.startsWith('/assets/')||path==='/favicon.ico';
+        const session=assetsPublic?false:await sharedValid(request,env);
+        if (!assetsPublic&&!session) {
+          if (path.startsWith('/api/')||path.startsWith('/oauth/')||path.startsWith('/auth/')) {
+            return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
+          }
+          if (path === '/app' || path === '/index.html') {
+            return sharedReply({error:'대시보드에 접근하려면 다시 로그인해주세요.',code:'LOGIN_REQUIRED'},401);
+          }
+          // No redirect loop: serve the login HTML directly for the home page.
+          const login=await env.ASSETS.fetch(new Request(new URL('/login.html',request.url)));
+          if(login.status!==200)return sharedReply({error:'로그인 화면 로딩 실패',status:login.status},503);
+          return new Response(login.body,{status:200,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+        }
+      } else if (path.startsWith('/auth/')) return respond({error:'테스트 로그인 기능은 비활성화되었습니다.'},404);
+      if (path === '/accounts.html') return redirect('/');
       if (!validEnv(env)) return respond({ error: 'Secret 또는 KV 바인딩이 없습니다.' }, 503);
       if (request.method !== 'GET') return respond({ error: '지원하지 않는 요청입니다.' }, 405);
-      // The obsolete trial login URL now returns to the existing dashboard.
-      if (path === '/login.html' || path === '/accounts.html') return redirect('/');
-      if (path.startsWith('/auth/')) return respond({ error: '테스트 로그인 기능은 비활성화되었습니다.' }, 404);
       if (url.pathname === '/api/status') {
         const saved = await env.GGM_AUTH.get(TOKEN_KEY, 'json');
         return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token && (!saved.refresh_expires_at || Number(saved.refresh_expires_at) > Date.now())), checked_at: new Date().toISOString() });
