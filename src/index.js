@@ -448,7 +448,22 @@ export default {
             if (path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/')) {
               return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
             }
-            return redirect('/login.html?next='+encodeURIComponent(path));
+            // Return the login HTML directly rather than issuing a redirect:
+            // this avoids repeated / -> /login.html hops when an upstream
+            // Cloudflare Access session is also involved.
+            const loginRequest = new Request(new URL('/login.html', request.url), {
+              method: 'GET',
+              headers: request.headers
+            });
+            const loginResponse = await env.ASSETS.fetch(loginRequest);
+            return new Response(loginResponse.body, {
+              status: loginResponse.status,
+              headers: {
+                ...Object.fromEntries(loginResponse.headers),
+                'Cache-Control': 'no-store',
+                'X-Robots-Tag': 'noindex, nofollow'
+              }
+            });
           }
         }
         if (path.startsWith('/auth/')) return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
