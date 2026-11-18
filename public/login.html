@@ -1,116 +1,75 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title>건강미 GGM OPS | 직원 로그인</title><link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
+<meta name="robots" content="noindex,nofollow"><title>건강미 GGM OPS | 로그인</title>
+<link rel="icon" type="image/svg+xml" href="/assets/geonganmi-mark.svg">
 <style>
-:root{--brand:#667f89;--text:#283e47;--line:#dfe8e9;--bg:#f6f9f9}*{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:var(--bg);font:14px/1.6 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);display:grid;place-items:center;padding:24px}
-.card{width:min(440px,100%);background:white;border:1px solid var(--line);border-radius:19px;padding:39px 37px;box-shadow:0 14px 46px #566c7420}
-.logo{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:15px}.logo img:first-child{width:61px;height:90px;object-fit:contain}.logo img:nth-child(2){width:170px;max-height:50px;object-fit:contain}
-.caption{text-align:center;color:#8498a0;font-size:10px;letter-spacing:2px;font-weight:800}
-h1{font-size:25px;letter-spacing:-.7px;margin:25px 0 6px;text-align:center}p{margin:0 0 25px;color:#85949b;text-align:center;font-size:13px}
-label{display:block;font-size:12px;font-weight:750;color:#587078;margin:17px 0 7px}
-input{width:100%;border:1px solid #dce5e8;border-radius:9px;min-height:45px;padding:11px 13px;outline:none;background:#fcfefe;color:#2b434c;font:inherit}
-input:focus{border-color:#667f89;box-shadow:0 0 0 3px #667f8926}button{font:inherit;cursor:pointer}
-.primary{width:100%;border:0;border-radius:9px;background:#667f89;color:white;padding:13px;font-weight:750;margin-top:23px;min-height:46px}
-.primary:disabled{opacity:.5;cursor:default}.status{font-size:12px;line-height:1.7;min-height:24px;margin-top:13px;color:#687f88;text-align:center}
-.status.error{color:#b44f4f}.extra{padding-top:18px;margin-top:19px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#8ca0a8}
-.extra a{color:#597a86}.setup[hidden],#loginForm[hidden],#sharedForm[hidden],#dashboardButton[hidden]{display:none}
-small{display:block;text-align:center;font-size:11px;color:#8b9da4;margin-top:12px}
-</style></head><body>
-<main class="card"><div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
-<div class="caption">GGM OPS · COMMERCE OPERATIONS</div><h1>건강미 로그인</h1><p>건강미 운영관리 시스템</p>
-<form id="sharedForm" hidden>
-<label for="sharedPassword">공통 비밀번호</label><input type="password" id="sharedPassword" autocomplete="current-password" required>
-<button class="primary" type="submit" id="sharedSubmit">관리자 프로그램 열기</button>
+:root{--brand:#667f89;--text:#2b424b;--line:#dbe5e7;--bg:#f5f8f8}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);font:14px/1.55 Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);display:grid;place-items:center;padding:20px}
+.card{width:min(440px,100%);padding:38px 36px 34px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 15px 45px #42596216}
+.logo{display:flex;justify-content:center;align-items:center;gap:9px}.logo img:first-child{width:58px;height:82px;object-fit:contain}.logo img:last-child{width:171px;height:46px;object-fit:contain}
+.eyebrow{text-align:center;color:#849ca5;font-size:10px;font-weight:750;letter-spacing:1.8px;margin-top:12px}
+h1{text-align:center;margin:30px 0 3px;font-size:24px;letter-spacing:-.6px}
+.description{text-align:center;color:#85969e;font-size:13px;margin:0 0 27px}
+label{font-size:12px;color:#58737b;font-weight:700;display:block;margin-bottom:8px}
+input{border:1px solid var(--line);border-radius:9px;width:100%;padding:11px 13px;min-height:47px;font:inherit;outline:none}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 3px #667f8920}
+button{font:inherit;cursor:pointer}
+.primary{background:var(--brand);border:0;color:white;border-radius:9px;padding:13px;min-height:47px;width:100%;font-weight:750;margin-top:20px}
+.primary:disabled{opacity:.55;cursor:default}
+.secondary{background:#edf4f4;color:#4d6973;border:0;border-radius:8px;padding:10px;width:100%;margin-top:12px;font-weight:700}
+.status{min-height:22px;text-align:center;margin-top:13px;font-size:12px;color:#648089;line-height:1.7}.status.error{color:#b34e4e}
+.foot{border-top:1px solid var(--line);padding-top:21px;margin-top:24px;font-size:11px;color:#8d9fa7;text-align:center;line-height:1.7}
+[hidden]{display:none!important}
+</style></head><body><main class="card">
+<div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
+<div class="eyebrow">GGM OPS · TEST ACCESS</div><h1>건강미 로그인</h1><p class="description">건강미 운영관리 시스템</p>
+<form id="form">
+<label for="password">공통 비밀번호</label>
+<input id="password" type="password" autocomplete="current-password" required autofocus>
+<button type="submit" class="primary" id="login">관리자 프로그램 열기</button>
 </form>
-<form id="loginForm">
-<label for="username">아이디</label><input id="username" name="username" autocomplete="username" required minlength="4" maxlength="32">
-<label for="password">비밀번호</label><input id="password" type="password" name="password" autocomplete="current-password" required minlength="12" maxlength="128">
-<button id="submit" class="primary" type="submit">로그인</button></form>
-<form id="setupForm" class="setup" hidden>
-<div class="status">초기 관리자 계정 등록 · 나인웍스 담당자 전용</div>
-<label for="key">초기 등록 비밀키</label><input id="key" type="password" autocomplete="off" required>
-<label for="newuser">최초 관리자 아이디</label><input id="newuser" autocomplete="off" required minlength="4" maxlength="32">
-<label for="newpass">최초 관리자 비밀번호 (12자 이상)</label><input id="newpass" type="password" autocomplete="new-password" required minlength="12" maxlength="128">
-<button class="primary" id="setupSubmit" type="submit">최초 관리자 등록</button>
-<small>비밀키는 Cloudflare Secrets에만 설정합니다. GitHub나 채팅에 공유하지 마세요.</small>
-</form>
-<div class="status" role="status" aria-live="polite" id="status">로그인 상태 확인 중…</div><button class="primary" id="dashboardButton" type="button" hidden>주문 대시보드 열기</button>
-<div class="extra">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>사용 계정 문의는 시스템 운영 담당자에게 연락해주세요.</div></div></main>
-<script>
+<button id="open" class="primary" type="button" hidden>주문 대시보드 열기</button>
+<button id="logout" class="secondary" type="button" hidden>로그아웃</button>
+<div id="status" class="status" role="status" aria-live="polite">비밀번호를 입력해주세요.</div>
+<div class="foot">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>개발 테스트용 관리자 접근 화면입니다.</div></div>
+</main><script>
 (() => {
 'use strict';
 const $=id=>document.getElementById(id),status=$('status');
-const setStatus=(s,error=false)=>{status.textContent=s;status.classList.toggle('error',error)};
-const after=()=>{
- const params=new URLSearchParams(location.search);
- const target=params.get('next')||'/index.html';
- location.assign(target.startsWith('/')&&!target.startsWith('//')?target:'/index.html');
-};
-async function statusCheck(){
- $('loginForm').hidden=true;$('setupForm').hidden=true;$('sharedForm').hidden=true;
- $('submit').disabled=true;
- $('dashboardButton').hidden=true;
- try {
-   const modeResponse=await fetch('/auth/mode?revision=shared-login-v3',{credentials:'same-origin',cache:'no-store'});
-   if(!modeResponse.ok)throw Error('로그인 서버가 최신 버전으로 배포되지 않았습니다. Cloudflare에서 GitHub 빌드 및 활성 배포를 확인해주세요.');
-   const info=await modeResponse.json();
-   if(info.mode==='shared'){
-     $('sharedForm').hidden=false;
-     document.querySelector('h1').textContent='건강미 테스트 로그인';
-     document.querySelector('.caption').textContent='GGM OPS · TEST ACCESS';
-     const me=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-     if(me.ok){
-       $('sharedForm').hidden=true;
-       $('dashboardButton').hidden=false;
-       setStatus('로그인이 유지 중입니다. 대시보드를 열어주세요.');
-       return;
-     }
-     setStatus(info.ready===false?'테스트 로그인 비밀값 설정을 확인해주세요.':'공통 비밀번호를 입력해주세요.');
-     $('sharedSubmit').disabled=info.ready===false;
-     return;
-   }
-   if(info.mode!=='individual'){
-     setStatus('현재 직원 전용 로그인이 비활성화되어 있습니다. Cloudflare Access를 유지해주세요.',true);
-     return;
-   }
-   const m=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
-   if(m.ok){$('dashboardButton').hidden=false;setStatus('로그인이 유지 중입니다.');return}
-   const res=await fetch('/auth/setup-status',{cache:'no-store',credentials:'same-origin'});
-   const data=await res.json();
-   if(!res.ok)throw Error(data.error||'직원 로그인 설정을 확인할 수 없습니다.');
-   if(data.setup_required){$('setupForm').hidden=false;setStatus('최초 관리자 등록이 필요합니다.');}
-   else {$('loginForm').hidden=false;$('submit').disabled=false;setStatus('');}
- }catch(e){
-   setStatus(e.message,true);
- }
+function message(s,error=false){status.textContent=s;status.classList.toggle('error',error)}
+function showSession(isValid){
+ $('form').hidden=isValid;$('open').hidden=!isValid;$('logout').hidden=!isValid;
+ if(isValid)message('로그인 상태가 유지되고 있습니다.');
 }
-async function submit(path,data,button){
- button.disabled=true;setStatus('확인 중…');
- try {
-   const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(data)});
-   const result=await r.json();
-   if(!r.ok)throw Error(result.error||'인증 실패');
-   if(path==='/auth/login'||path==='/auth/shared/login'){
-      const endpoint=path==='/auth/shared/login'?'/auth/shared/me':'/auth/me';
-      const verify=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
-      if(!verify.ok)throw Error('로그인 세션을 확인하지 못했습니다. 브라우저 쿠키 설정을 확인해주세요.');
-      $('dashboardButton').hidden=false;
-      $('sharedForm').hidden=true;$('loginForm').hidden=true;
-      setStatus('로그인 성공. 대시보드 열기 버튼을 눌러주세요.');
-   }
-   else {$('setupForm').hidden=true;$('loginForm').hidden=false;setStatus('관리자 등록 완료. 새 아이디로 로그인해주세요.');}
- }catch(e){setStatus(e.message,true)}
- finally{button.disabled=false}
+async function checkSession(){
+ try{
+  const response=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
+  if(response.ok)showSession(true);
+ }catch{ /* Keep the password form available. Never reload or redirect automatically. */ }
 }
-$('dashboardButton').addEventListener('click',after);
-$('sharedForm').addEventListener('submit',e=>{
+$('form').addEventListener('submit',async e=>{
  e.preventDefault();
- submit('/auth/shared/login',{password:$('sharedPassword').value},$('sharedSubmit'));
+ const button=$('login');button.disabled=true;message('비밀번호 확인 중…');
+ try {
+  const response=await fetch('/auth/shared/login',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({password:$('password').value}),credentials:'same-origin',cache:'no-store'
+  });
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(result.error||'로그인 실패 ('+response.status+')');
+  const verify=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
+  if(!verify.ok)throw Error('세션을 확인할 수 없습니다. 브라우저 쿠키 설정을 확인해주세요.');
+  $('password').value='';
+  // Only navigate once, as a direct result of the user's login click.
+  location.assign('/app');
+ }catch(error){message(error.message,true);button.disabled=false;}
 });
-$('loginForm').addEventListener('submit',e=>{e.preventDefault();submit('/auth/login',{username:$('username').value.trim(),password:$('password').value},$('submit'))});
-$('setupForm').addEventListener('submit',e=>{e.preventDefault();submit('/auth/bootstrap',{setup_key:$('key').value,username:$('newuser').value.trim(),password:$('newpass').value},$('setupSubmit'))});
-statusCheck();
+$('open').addEventListener('click',()=>location.assign('/app'));
+$('logout').addEventListener('click',async()=>{
+ $('logout').disabled=true;
+ try{await fetch('/auth/shared/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'same-origin'})}catch{}
+ finally{showSession(false);$('logout').disabled=false;message('로그아웃되었습니다. 비밀번호를 입력해주세요.')}
+});
+checkSession();
 })();
 </script></body></html>
