@@ -30,7 +30,7 @@ h1{margin:5px 0;font-size:30px;letter-spacing:-.9px}h2{font-size:18px;margin:0}p
 @media(max-width:550px){.side{width:55px}.mark{width:30px;height:45px}.side a{font-size:9px}.stats{gap:8px}.stat{padding:15px}.stat .val{font-size:19px}.content{padding:20px 11px}.chart-scroll{padding:14px}}
 </style></head><body>
 <div class="layout"><aside class="side"><div class="brand"><div class="lockup"><img src="/assets/geonganmi-mark.svg" alt="" class="mark"><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI" class="wordmark"></div><small>GGM OPS · COMMERCE OPERATIONS</small></div>
-<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html" class="active">판매액·매출 분석</a><a href="/shipping.html">배송 점검</a></aside>
+<a href="/">주문 대시보드</a><a href="/products.html">상품 목록</a><a href="/explorer.html">주문자·제품 조회</a><a href="/sales.html" class="active">판매액·매출 분석</a><a href="/backup.html">배송 데이터 백업</a><a href="/shipping.html">배송 점검</a></aside>
 <div class="main"><div class="top">건강미 운영센터 / 판매액·매출 분석</div>
 <main class="content"><div class="head"><div><div class="eyebrow">SALES ANALYTICS</div><h1>판매액·매출 분석</h1><p>일자별·주간별 주문금액 흐름과 해당 기간 주문내역을 확인합니다.</p></div><button class="btn" id="csv" disabled>현재 상세 주문 엑셀 (CSV)</button></div>
 <section class="panel"><div class="controls"><label>기간 <select id="quick"><option value="7" selected>최근 7일</option><option value="14">최근 14일</option><option value="30">최근 30일</option><option value="90">최근 3개월</option><option value="custom">직접 선택</option></select></label>
@@ -195,4 +195,4 @@ $('csv').addEventListener('click',csv);
 const initial=preset(7);$('startDate').value=initial.start;$('endDate').value=initial.end;$('startDate').max=initial.end;$('endDate').max=initial.end;
 scan();
 })();
-</script></body></html>
+</script><script src="/assets/session.js" defer></script></body></html>
