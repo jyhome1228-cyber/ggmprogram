@@ -200,6 +200,8 @@ td{border-bottom:1px solid #edf1f2;padding:14px 17px;font-size:12px}
   $('customerDialogTitle').textContent=group.name+' 고객 상세';
   $('customerExportStatus').textContent='최근 주문의 고객정보를 조회하고 있습니다.';
   $('customerExportInfo').disabled=true;
+  $('customerExportHistory').disabled=false;
+  $('customerCopyKakao').disabled=false;
   renderCustomerDetail();
   if(!dialog.open)dialog.showModal();
   const newest=[...group.orders].sort((a,b)=>String(b.order_date).localeCompare(String(a.order_date)))[0];
@@ -282,7 +284,10 @@ td{border-bottom:1px solid #edf1f2;padding:14px 17px;font-size:12px}
 
  }
  async function scan(){
-  if(state.busy)return;state.busy=true;state.complete=false;state.reason='';state.orders=[];state.selected='';
+  if(state.busy)return;
+  if(dialog.open)dialog.close();
+  detailAbort?.abort();
+  state.busy=true;state.complete=false;state.reason='';state.orders=[];state.selected='';
   state.controller=new AbortController();const signal=state.controller.signal;
   $('scan').disabled=true;$('stop').disabled=false;$('progress').hidden=false;$('bar').style.width='0%';
   $('status').innerHTML='<span class="spinner"></span>주문조회 중';render();
