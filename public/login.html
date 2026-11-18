@@ -15,7 +15,7 @@ input:focus{border-color:#667f89;box-shadow:0 0 0 3px #667f8926}button{font:inhe
 .primary{width:100%;border:0;border-radius:9px;background:#667f89;color:white;padding:13px;font-weight:750;margin-top:23px;min-height:46px}
 .primary:disabled{opacity:.5;cursor:default}.status{font-size:12px;line-height:1.7;min-height:24px;margin-top:13px;color:#687f88;text-align:center}
 .status.error{color:#b44f4f}.extra{padding-top:18px;margin-top:19px;border-top:1px solid var(--line);text-align:center;font-size:12px;color:#8ca0a8}
-.extra a{color:#597a86}.setup[hidden],#loginForm[hidden],#sharedForm[hidden]{display:none}
+.extra a{color:#597a86}.setup[hidden],#loginForm[hidden],#sharedForm[hidden],#dashboardButton[hidden]{display:none}
 small{display:block;text-align:center;font-size:11px;color:#8b9da4;margin-top:12px}
 </style></head><body>
 <main class="card"><div class="logo"><img src="/assets/geonganmi-mark.svg" alt=""><img src="/assets/geonganmi-wordmark.svg" alt="GEONGANMI"></div>
@@ -36,7 +36,7 @@ small{display:block;text-align:center;font-size:11px;color:#8b9da4;margin-top:12
 <button class="primary" id="setupSubmit" type="submit">최초 관리자 등록</button>
 <small>비밀키는 Cloudflare Secrets에만 설정합니다. GitHub나 채팅에 공유하지 마세요.</small>
 </form>
-<div class="status" role="status" aria-live="polite" id="status">로그인 시스템 확인 중…</div>
+<div class="status" role="status" aria-live="polite" id="status">로그인 상태 확인 중…</div><button class="primary" id="dashboardButton" type="button" hidden>주문 대시보드 열기</button>
 <div class="extra">Cloudflare 서버는 NINEWORKS가 관리합니다.<div>사용 계정 문의는 시스템 운영 담당자에게 연락해주세요.</div></div></main>
 <script>
 (() => {
@@ -45,12 +45,13 @@ const $=id=>document.getElementById(id),status=$('status');
 const setStatus=(s,error=false)=>{status.textContent=s;status.classList.toggle('error',error)};
 const after=()=>{
  const params=new URLSearchParams(location.search);
- const target=params.get('next')||'/';
- location.replace(target.startsWith('/')&&!target.startsWith('//')?target:'/');
+ const target=params.get('next')||'/index.html';
+ location.assign(target.startsWith('/')&&!target.startsWith('//')?target:'/index.html');
 };
 async function statusCheck(){
  $('loginForm').hidden=true;$('setupForm').hidden=true;$('sharedForm').hidden=true;
  $('submit').disabled=true;
+ $('dashboardButton').hidden=true;
  try {
    const modeResponse=await fetch('/auth/mode?revision=shared-login-v3',{credentials:'same-origin',cache:'no-store'});
    if(!modeResponse.ok)throw Error('로그인 서버가 최신 버전으로 배포되지 않았습니다. Cloudflare에서 GitHub 빌드 및 활성 배포를 확인해주세요.');
@@ -60,7 +61,12 @@ async function statusCheck(){
      document.querySelector('h1').textContent='건강미 테스트 로그인';
      document.querySelector('.caption').textContent='GGM OPS · TEST ACCESS';
      const me=await fetch('/auth/shared/me',{credentials:'same-origin',cache:'no-store'});
-     if(me.ok){after();return}
+     if(me.ok){
+       $('sharedForm').hidden=true;
+       $('dashboardButton').hidden=false;
+       setStatus('로그인이 유지 중입니다. 대시보드를 열어주세요.');
+       return;
+     }
      setStatus(info.ready===false?'테스트 로그인 비밀값 설정을 확인해주세요.':'공통 비밀번호를 입력해주세요.');
      $('sharedSubmit').disabled=info.ready===false;
      return;
@@ -70,7 +76,7 @@ async function statusCheck(){
      return;
    }
    const m=await fetch('/auth/me',{credentials:'same-origin',cache:'no-store'});
-   if(m.ok){after();return}
+   if(m.ok){$('dashboardButton').hidden=false;setStatus('로그인이 유지 중입니다.');return}
    const res=await fetch('/auth/setup-status',{cache:'no-store',credentials:'same-origin'});
    const data=await res.json();
    if(!res.ok)throw Error(data.error||'직원 로그인 설정을 확인할 수 없습니다.');
@@ -86,11 +92,19 @@ async function submit(path,data,button){
    const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(data)});
    const result=await r.json();
    if(!r.ok)throw Error(result.error||'인증 실패');
-   if(path==='/auth/login'||path==='/auth/shared/login')after();
+   if(path==='/auth/login'||path==='/auth/shared/login'){
+      const endpoint=path==='/auth/shared/login'?'/auth/shared/me':'/auth/me';
+      const verify=await fetch(endpoint,{credentials:'same-origin',cache:'no-store'});
+      if(!verify.ok)throw Error('로그인 세션을 확인하지 못했습니다. 브라우저 쿠키 설정을 확인해주세요.');
+      $('dashboardButton').hidden=false;
+      $('sharedForm').hidden=true;$('loginForm').hidden=true;
+      setStatus('로그인 성공. 대시보드 열기 버튼을 눌러주세요.');
+   }
    else {$('setupForm').hidden=true;$('loginForm').hidden=false;setStatus('관리자 등록 완료. 새 아이디로 로그인해주세요.');}
  }catch(e){setStatus(e.message,true)}
  finally{button.disabled=false}
 }
+$('dashboardButton').addEventListener('click',after);
 $('sharedForm').addEventListener('submit',e=>{
  e.preventDefault();
  submit('/auth/shared/login',{password:$('sharedPassword').value},$('sharedSubmit'));
