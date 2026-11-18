@@ -1,4 +1,5 @@
 import { handleAuth, userBySession, json as authJson } from './auth.js';
+import { handleShared, valid as sharedValid, secretsReady as sharedSecretsReady, reply as sharedReply } from './shared-auth.js';
 // GGM OPS — Cafe24 read-only Worker
 // Protected at the edge by Cloudflare Access (ALL traffic).
 const MALL_ID = 'ggmspa';
@@ -433,10 +434,24 @@ export default {
     if (url.origin !== ORIGIN) return respond({ error: '잘못된 호스트' }, 400);
     // Optional staged rollout: until D1 and a first admin are tested,
     // Cloudflare Access remains the security boundary (no Access policy changes here).
-    const enforce = env.GGM_LOGIN_ENFORCE === 'true';
+    const mode = env.GGM_AUTH_MODE === 'shared' ? 'shared' : (env.GGM_LOGIN_ENFORCE === 'true' ? 'individual' : 'access');
+    const enforce = mode === 'individual';
     const path = url.pathname;
     try {
-      if (path.startsWith('/auth/')) return await handleAuth(request, env, path);
+      if (path.startsWith('/auth/shared/')) return await handleShared(request,env,path);
+      if (mode === 'shared') {
+        if (!sharedSecretsReady(env)) return sharedReply({error:'공통 비밀번호 로그인 설정이 완료되지 않았습니다. Cloudflare Access를 유지하세요.'},503);
+        // The shared temporary mode is independent of D1 and does not expose Cafe24 APIs.
+        if (path !== '/login.html' && path !== '/favicon.ico' && !path.startsWith('/assets/')) {
+          if (!(await sharedValid(request,env))) {
+            if (path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/')) {
+              return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
+            }
+            return redirect('/login.html?next='+encodeURIComponent(path));
+          }
+        }
+        if (path.startsWith('/auth/')) return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
+      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
       if (enforce) {
         // Fail closed if dedicated login is switched on before the D1 binding exists.
         if (!env.AUTH_DB) return authJson({error:'로그인 데이터베이스가 연결되지 않았습니다.'},503);
