@@ -149,6 +149,10 @@ async function scan(){
  let range;try{range=selectedRange()}catch(e){showRangeError(e.message);return}
  state.range=range;
  state.busy=true;state.hasLoaded=true;state.complete=false;state.partial=false;state.orders=[];state.reason='';state.controller=new AbortController();
+ $('loadingBanner').hidden=false;
+ $('loadingBanner').setAttribute('aria-busy','true');
+ $('scan').disabled=true;$('download').disabled=true;
+ $('scanNote').textContent='카페24 주문을 불러오는 중입니다…';
  const signal=state.controller.signal;
  $('progressWrap').hidden=false;$('bar').style.width='0%';$('scanNote').classList.remove('error');$('loadingDetail').textContent=range.start+' ~ '+range.end+' · 조회 시작';
  render();let scanned=0;
@@ -184,6 +188,9 @@ async function scan(){
  }catch(error){state.reason=signal.aborted?'사용자 중단':error.message}
  finally{
   state.busy=false;state.controller=null;state.partial=!state.complete;
+  $('loadingBanner').hidden=true;
+  $('loadingBanner').setAttribute('aria-busy','false');
+  $('scan').disabled=false;
   $('scanNote').textContent=(state.complete?'조회 완료':'부분 조회')+' · '+state.orders.length+'건'+(state.reason?' · '+state.reason:'');
   $('scanNote').classList.toggle('error',!!state.reason);
   $('progressText').textContent=state.complete?'선택기간 끝까지 조회 완료':state.reason||'부분 조회';
