@@ -1,5 +1,3 @@
-import { handleAuth, userBySession, json as authJson } from './auth.js';
-import { handleShared, valid as sharedValid, secretsReady as sharedSecretsReady, reply as sharedReply } from './shared-auth.js';
 // GGM OPS — Cafe24 read-only Worker
 // Protected at the edge by Cloudflare Access (ALL traffic).
 const MALL_ID = 'ggmspa';
@@ -432,62 +430,13 @@ export default {
     // IMPORTANT: Cloudflare Access must protect every public Worker route.
     const url = new URL(request.url);
     if (url.origin !== ORIGIN) return respond({ error: '잘못된 호스트' }, 400);
-    // Optional staged rollout: until D1 and a first admin are tested,
-    // Cloudflare Access remains the security boundary (no Access policy changes here).
-    const mode = env.GGM_AUTH_MODE === 'shared' ? 'shared' : (env.GGM_LOGIN_ENFORCE === 'true' ? 'individual' : 'access');
-    const enforce = mode === 'individual';
+    // Existing Cloudflare Access protects all routes.
+    // Temporary shared-login and employee-login code is dormant during QA.
     const path = url.pathname;
     try {
-      if (path === '/auth/mode') return sharedReply({mode, revision:'shared-login-v2', login_url:'/login.html', ready: mode !== 'shared' || sharedSecretsReady(env)});
-      if (path.startsWith('/auth/shared/')) return await handleShared(request,env,path);
-      if (mode === 'shared') {
-        // Single, predictable entry. No automatic redirects between app and login.
-        if (!sharedSecretsReady(env)) {
-          return sharedReply({error:'테스트 로그인 비밀값 설정이 필요합니다. 기존 Cloudflare Access를 유지해주세요.'},503);
-        }
-        const publicPath = path === '/login.html' || path === '/favicon.ico' || path.startsWith('/assets/');
-        const isAPI = path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/');
-        const authenticated = publicPath ? false : await sharedValid(request,env);
-        if (!publicPath && !authenticated) {
-          if (isAPI || path === '/app' || path === '/index.html') {
-            return sharedReply({error:'대시보드 접속 시 로그인 쿠키가 확인되지 않았습니다.',code:'LOGIN_REQUIRED'},401);
-          }
-          // Static login page served directly with HTTP 200; zero 3xx hops.
-          const loginReq = new Request(new URL('/login.html',request.url),{method:'GET',headers:request.headers});
-          const loginAsset = await env.ASSETS.fetch(loginReq);
-          if (loginAsset.status>=300 && loginAsset.status<400) {
-            return sharedReply({error:'로그인 HTML 자산 경로에 리디렉션 설정 오류가 있습니다.'},503);
-          }
-          return new Response(loginAsset.body,{
-            status:loginAsset.status,
-            headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow'}
-          });
-        }
-        if (path.startsWith('/auth/')) {
-          return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
-        }
-      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
-      if (enforce) {
-        // Fail closed if dedicated login is switched on before the D1 binding exists.
-        if (!env.AUTH_DB) return authJson({error:'로그인 데이터베이스가 연결되지 않았습니다.'},503);
-        const publicAsset = path === '/login.html' || path === '/favicon.ico' || path.startsWith('/assets/');
-        if (!publicAsset) {
-          const user = await userBySession(request,env);
-          if (!user) {
-            if (path.startsWith('/api/') || path.startsWith('/oauth/')) {
-              return authJson({error:'관리자 로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
-            }
-            const target = path==='/' ? '/' : path;
-            return redirect('/login.html?next='+encodeURIComponent(target));
-          }
-          // Credential changes and full shipping-data exports are administrator-only.
-          if (user.role!=='admin' && (path.startsWith('/oauth/') || path==='/api/backup/shipping')) {
-            return authJson({error:'관리자 권한이 필요합니다.'},403);
-          }
-        }
-      }
       if (!validEnv(env)) return respond({ error: 'Secret 또는 KV 바인딩이 없습니다.' }, 503);
       if (request.method !== 'GET') return respond({ error: '지원하지 않는 요청입니다.' }, 405);
+      if (path.startsWith('/auth/')) return respond({ error: '테스트 로그인 기능은 비활성화되었습니다.' }, 404);
       if (url.pathname === '/api/status') {
         const saved = await env.GGM_AUTH.get(TOKEN_KEY, 'json');
         return respond({ mall_id: MALL_ID, connected: Boolean(saved?.refresh_token && (!saved.refresh_expires_at || Number(saved.refresh_expires_at) > Date.now())), checked_at: new Date().toISOString() });
