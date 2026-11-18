@@ -1,5 +1,17 @@
 # GGM OPS 직원 전용 로그인 — 안전한 전환 가이드
 
+## 테스트용 공통 비밀번호 모드 (이번 요청)
+
+직원별 계정 체계를 **삭제하지 않고 잠시 보류**합니다. Cloudflare Access 보호는 유지하면서 별도 D1 초기화 없이 작동하는 테스트 모드입니다.
+
+1. Cloudflare → Workers & Pages → `ggm-ops` → 설정 → 변수 및 비밀에 **Secret** `GGM_SHARED_PASSWORD`를 추가합니다. 값은 채팅·GitHub에 넣지 않습니다.
+2. **일반 텍스트 변수** `GGM_AUTH_MODE`를 `shared`로 추가합니다.
+3. 기존 `GGM_BOOTSTRAP_KEY`는 32자 이상으로 설정되어 있어야 합니다. 테스트 모드에서 7일 로그인 쿠키 서명에 재사용하며, 브라우저에는 노출하지 않습니다.
+4. Cloudflare Access 보호를 그대로 둔 상태에서 `/login.html`을 접속하면 **비밀번호 한 칸**만 보이고 7일 로그인 쿠키가 발급됩니다.
+5. 테스트 모드에서 `/accounts.html` 등 직원별 계정 관리 기능은 사용하지 않습니다. 임시 공통 로그인은 관리자 역할로 동작하므로 다운로드 기능도 사용할 수 있습니다.
+6. 새 로그인 모드의 동작 검증 없이 기존 Cloudflare Access를 해제하지 마세요. **짧고 예측 가능한 공통 비밀번호는 고객 배송지·전화번호를 다루는 외부 공개 시스템에 안전하지 않습니다.** 외부 접근용으로 전환할 때는 강력한 비밀번호와 추가 로그인 보호/요청 제한이 필요합니다.
+7. 나중에 직원별 로그인으로 돌아갈 때는 `GGM_AUTH_MODE`의 `shared` 값을 제거하고 D1을 준비한 뒤 `GGM_LOGIN_ENFORCE=true`로 전환합니다.
+
 ## 현재 상태
 
 1. GitHub에는 로그인 화면(`public/login.html`), 직원 계정 관리(`public/accounts.html`), 서버 인증(`src/auth.js`), D1 스키마(`migrations/0001_auth.sql`)가 구현되어 있습니다.
