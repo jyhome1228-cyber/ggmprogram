@@ -135,7 +135,7 @@ function aggregated(){
 let currentDetail=null;
 function csvSafe(value){
  const v=String(value??'');
- return '"'+(/^[=+@\-\\t\\r]/.test(v)?'\t':'')+v.replace(/"/g,'""')+'"';
+ return '"'+(/^[=+@\-\t\r]/.test(v)?'\t':'')+v.replace(/"/g,'""')+'"';
 }
 function downloadRows(name,rows){
  const data='\uFEFF'+rows.map(row=>row.map(csvSafe).join(',')).join('\r\n');
