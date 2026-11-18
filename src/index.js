@@ -441,33 +441,30 @@ export default {
       if (path === '/auth/mode') return sharedReply({mode, revision:'shared-login-v2', login_url:'/login.html', ready: mode !== 'shared' || sharedSecretsReady(env)});
       if (path.startsWith('/auth/shared/')) return await handleShared(request,env,path);
       if (mode === 'shared') {
-        if (!sharedSecretsReady(env)) return sharedReply({error:'공통 비밀번호 로그인 설정이 완료되지 않았습니다. Cloudflare Access를 유지하세요.'},503);
-        // The shared temporary mode is independent of D1 and does not expose Cafe24 APIs.
-        if (path !== '/login.html' && path !== '/favicon.ico' && !path.startsWith('/assets/')) {
-          if (!(await sharedValid(request,env))) {
-            if (path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/')) {
-              return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
-            }
-            // Return the login HTML directly rather than issuing a redirect:
-            // this avoids repeated / -> /login.html hops when an upstream
-            // Cloudflare Access session is also involved.
-            const loginRequest = new Request(new URL('/login.html', request.url), {
-              method: 'GET',
-              headers: request.headers
-            });
-            const loginResponse = await env.ASSETS.fetch(loginRequest);
-            return new Response(loginResponse.body, {
-              status: loginResponse.status,
-              headers: {
-                ...Object.fromEntries(loginResponse.headers),
-                'Cache-Control': 'no-store',
-                'X-Robots-Tag': 'noindex, nofollow'
-              }
-            });
-          }
+        // Single, predictable entry. No automatic redirects between app and login.
+        if (!sharedSecretsReady(env)) {
+          return sharedReply({error:'테스트 로그인 비밀값 설정이 필요합니다. 기존 Cloudflare Access를 유지해주세요.'},503);
         }
-        if (path.startsWith('/auth/')) return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
-      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
+        const publicPath = path === '/login.html' || path === '/favicon.ico' || path.startsWith('/assets/');
+        const isAPI = path.startsWith('/api/') || path.startsWith('/oauth/') || path.startsWith('/auth/');
+        const authenticated = publicPath ? false : await sharedValid(request,env);
+        if (!publicPath && !authenticated) {
+          if (isAPI) return sharedReply({error:'로그인이 필요합니다.',code:'LOGIN_REQUIRED'},401);
+          // Static login page served directly with HTTP 200; zero 3xx hops.
+          const loginReq = new Request(new URL('/login.html',request.url),{method:'GET',headers:request.headers});
+          const loginAsset = await env.ASSETS.fetch(loginReq);
+          if (loginAsset.status>=300 && loginAsset.status<400) {
+            return sharedReply({error:'로그인 HTML 자산 경로에 리디렉션 설정 오류가 있습니다.'},503);
+          }
+          return new Response(loginAsset.body,{
+            status:loginAsset.status,
+            headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY','X-Robots-Tag':'noindex, nofollow'}
+          });
+        }
+        if (path.startsWith('/auth/')) {
+          return sharedReply({error:'테스트 모드에서는 사용할 수 없는 계정 기능입니다.'},404);
+        }
+      }      } else if (path.startsWith('/auth/')) return await handleAuth(request,env,path);
       if (enforce) {
         // Fail closed if dedicated login is switched on before the D1 binding exists.
         if (!env.AUTH_DB) return authJson({error:'로그인 데이터베이스가 연결되지 않았습니다.'},503);
@@ -563,9 +560,11 @@ export default {
       // Assets serve the frontend only. No sensitive API values should be cached in assets.
       // With html_handling=none, explicitly map the app root to the index asset.
       // This prevents canonical .html redirects from forming login loops.
-      if (path === '/') {
-        const assetRequest = new Request(new URL('/index.html',request.url),request);
-        return env.ASSETS.fetch(assetRequest);
+      if (path === '/' || path === '/app') {
+        const assetRequest = new Request(new URL('/index.html',request.url),{method:'GET',headers:request.headers});
+        const asset=await env.ASSETS.fetch(assetRequest);
+        if(asset.status>=300 && asset.status<400)return respond({error:'대시보드 HTML 경로 리디렉션 오류'},503);
+        return new Response(asset.body,{status:asset.status,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY'}});
       }
       return env.ASSETS.fetch(request);
     } catch (err) {
